@@ -31,6 +31,35 @@ function Check_OS(){
     fi
 }
 
+function CHK_ELREPO(){
+    if ! yum list installed elrepo-release >/dev/null 2>&1;then
+        echo -e "\033[32m    导入elrepo密钥中... \033[0m"
+        if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org; then
+            if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org; then
+                echo -e "\033[31m    导入elrepo密钥失败.\033[0m"
+                exit 1
+            fi
+        fi
+        echo -e "\033[32m    安装elrepo-releases中... \033[0m"
+        if [[ "$(Check_OS)" == "centos7" ]]; then
+            if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm; then
+                if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm; then
+                    echo -e "\033[31m    安装elrepo-releases失败.\033[0m"
+                    exit 1
+                fi
+            fi
+        elif [[ "$(Check_OS)" == "centos6" ]]; then
+            echo -e "\033[32m    安装elrepo-releases中... \033[0m"
+            if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm; then
+                if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm; then
+                    echo -e "\033[31m    安装elrepo-releases失败.\033[0m"
+                    exit 1
+                fi
+            fi
+        fi
+    fi
+}
+
 #####################################################################################
 
 if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
@@ -54,6 +83,7 @@ else
         echo -e "\033[31m    目前仅支持x86_64架构.\033[0m"
     fi
     #检测内核
+    CHK_ELREPO
     echo -e "\033[32m    检测系统内核... \033[0m"
     if [[ "$(Check_OS)" == "centos7" ]]; then
         BIT=7
@@ -105,39 +135,13 @@ else
         echo -e "\033[32m    内核检测通过. \033[0m"
     else
         echo -e "\033[31m    内核过旧, 升级内核中... \033[0m"
-        if ! yum list installed elrepo-release >/dev/null 2>&1;then
-            echo -e "\033[32m    导入elrepo密钥中... \033[0m"
-            if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org; then
-                if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org; then
-                    echo -e "\033[31m    导入elrepo密钥失败.\033[0m"
-                    exit 1
-                fi
-            fi
-            echo -e "\033[32m    安装elrepo-releases中... \033[0m"
-            if [[ "$(Check_OS)" == "centos7" ]]; then
-                if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm; then
-                    if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm; then
-                        echo -e "\033[31m    安装elrepo-releases失败.\033[0m"
-                        exit 1
-                    fi
-                fi
-            elif [[ "$(Check_OS)" == "centos6" ]]; then
-                echo -e "\033[32m    安装elrepo-releases中... \033[0m"
-                if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm; then
-                    if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm; then
-                        echo -e "\033[31m    安装elrepo-releases失败.\033[0m"
-                        exit 1
-                    fi
-                fi
-            fi
-            #echo -e "\033[32m    为避免冲突, 正在删除旧版本的kernel-headers... \033[0m"
-            #rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
-            #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
-            echo -e "\033[32m    安装最新版本ml内核中... \033[0m"
-            if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
-                echo -e "\033[31m    安装最新版本ml内核失败.\033[0m"
-                exit 1
-            fi
+        #echo -e "\033[32m    为避免冲突, 正在删除旧版本的kernel-headers... \033[0m"
+        #rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
+        #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
+        echo -e "\033[32m    安装最新版本ml内核中... \033[0m"
+        if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
+            echo -e "\033[31m    安装最新版本ml内核失败.\033[0m"
+            exit 1
         fi
         UP_KERNEL
     fi
