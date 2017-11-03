@@ -135,8 +135,8 @@ else
         echo -e "\033[32m    内核检测通过. \033[0m"
     else
         echo -e "\033[31m    内核过旧, 升级内核中... \033[0m"
-        #echo -e "\033[32m    为避免冲突, 正在删除旧版本的kernel-headers... \033[0m"
-        #rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
+        echo -e "\033[32m    为避免冲突, 正在删除旧版本的kernel-headers... \033[0m"
+        rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
         #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
         echo -e "\033[32m    安装最新版本ml内核中... \033[0m"
         if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
@@ -151,6 +151,8 @@ else
         read -p "    输入[y/n]选择, 默认为y：" is_upkernel
         [[ -z "${is_upkernel}" ]] && is_upkernel='y'
         if [[ ${is_upkernel} == "y" || ${is_upkernel} == "Y" ]]; then
+            echo -e "\033[32m    为避免冲突, 正在删除旧版本的kernel-headers... \033[0m"
+            rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
             if ! yum --enablerepo=elrepo-kernel -y update kernel-ml kernel-ml-devel kernel-ml-headers; then
                 echo -e "\033[31m   升级内核失败.\033[0m"
                 exit 1
