@@ -189,18 +189,11 @@ else
     fi
     
     #更新启动配置并删除其它内核
-    echo -e "\033[32m    更新启动配置并删除其它内核. \033[0m"
-    if [[ "$(Check_OS)" == "centos7" ]]; then
-        grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
-        grub2-set-default 0 >/dev/null 2>&1
-    fi
-    if [[ "$(Check_OS)" == "centos6" ]]; then
-        kernel_default=$(grep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | grep "${NET_KERNEL}" | grep -v debug | cut -d' ' -f1 | head -n 1)
-        sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
-    fi
     if rpm -qa | grep kernel | grep -v "${KERNEL_VER}" >/dev/null 2>&1;then
+        echo -e "\033[32m    删除其它老旧内核中... \033[0m"
         rpm -qa | grep kernel | grep -v "${KERNEL_VER}" | xargs yum remove -y
     fi
+    
     #安装必备组件
     echo -e "\033[32m    安装必备组件包中... \033[0m"
     yum groupinstall -y "Development Tools" && yum install -y libtool gcc gcc-c++ wget
