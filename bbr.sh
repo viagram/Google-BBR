@@ -68,7 +68,7 @@ if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
 else
     echo -e "\033[32m    检测系统架构... \033[0m"
     if ! command -v virt-what >/dev/null 2>&1; then
-        yum install -y virt-what
+        yum install -y virt-what >/dev/null 2>&1
     fi
     #删除二次登陆启动项
     if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
