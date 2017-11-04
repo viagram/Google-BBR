@@ -49,7 +49,6 @@ function CHK_ELREPO(){
                 fi
             fi
         elif [[ "$(Check_OS)" == "centos6" ]]; then
-            echo -e "\033[32m    安装elrepo-releases中... \033[0m"
             if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm; then
                 if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm; then
                     echo -e "\033[31m    安装elrepo-releases失败.\033[0m"
