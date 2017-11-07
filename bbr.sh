@@ -19,6 +19,10 @@ function Check_OS(){
             echo 'centos6'
         elif egrep -i "centos.*7\..*" /etc/redhat-release >/dev/null 2>&1;then
             echo 'centos7'
+        elif egrep -i "Red.*Hat.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
+            echo 'redhat6'
+        elif egrep -i "Red.*Hat.*7\..*" /etc/redhat-release >/dev/null 2>&1;then
+            echo 'redhat7'
         fi
     elif [[ -f /etc/issue ]];then
         if egrep -i "debian" /etc/issue >/dev/null 2>&1;then
@@ -77,35 +81,43 @@ function OptNET(){
 
 function CHK_ELREPO(){
     if ! yum list installed elrepo-release >/dev/null 2>&1;then
-        echo -e "\033[32m    导入elrepo密钥中... \033[0m"
-        if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org; then
-            if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org; then
-                echo -e "\033[31m    导入elrepo密钥失败.\033[0m"
+        echo -ne "\033[32m    导入elrepo密钥中... \033[0m"
+        if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
+            if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
+                echo -e "\033[31m    导入失败.\033[0m"
                 exit 1
+            else
+                echo -e "\033[32m    导入成功.\033[0m"
             fi
         fi
-        echo -e "\033[32m    安装elrepo-releases中... \033[0m"
-        if [[ "$(Check_OS)" == "centos7" ]]; then
-            if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm; then
-                if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm; then
-                    echo -e "\033[31m     安装elrepo-releases失败.\033[0m"
+        echo -ne "\033[32m    安装elrepo-releases中... \033[0m"
+        if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
+            if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
+                if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
+                    echo -e "\033[31m     安装失败.\033[0m"
                     exit 1
+                else
+                    echo -e "\033[32m     安装成功.\033[0m"
                 fi
             fi
-        elif [[ "$(Check_OS)" == "centos6" ]]; then
-            if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm; then
-                if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm; then
-                    echo -e "\033[31m    安装elrepo-releases失败.\033[0m"
+        elif [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
+            if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
+                if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
+                    echo -e "\033[31m     安装失败.\033[0m"
                     exit 1
+                else
+                    echo -e "\033[32m     安装成功.\033[0m"
                 fi
             fi
+        else
+            echo -e "\033[31m    安装elrepo-releases失败, 暂不支持该系统.\033[0m"
         fi
     fi
 }
 
 #####################################################################################
 
-if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
+if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" && "$(Check_OS)" != "redhat7" && "$(Check_OS)" != "redhat6" ]]; then
     echo -e "\033[31m    目前仅支持CentOS系统.\033[0m"
     exit 1
 else
@@ -130,10 +142,10 @@ else
     #检测内核
     CHK_ELREPO
     echo -ne "\033[32m    检测系统内核... \033[0m"
-    if [[ "$(Check_OS)" == "centos7" ]]; then
+    if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
         BIT=7
     fi
-    if [[ "$(Check_OS)" == "centos6" ]]; then
+    if [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
         BIT=6
     fi
     if ! command -v curl >/dev/null 2>&1; then
@@ -153,11 +165,11 @@ else
     VERSION_C=$(echo ${KERNEL_VER} | awk -F '.' '{print $3}')
     function UP_KERNEL(){
         echo -e "\033[32m    正在设置新内核的启动顺序... \033[0m"
-        if [[ "$(Check_OS)" == "centos7" ]]; then
+        if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
             grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
             grub2-set-default 0 >/dev/null 2>&1
         fi
-        if [[ "$(Check_OS)" == "centos6" ]]; then
+        if [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
             #sed -i "s/^default.*/default=0/" /boot/grub/grub.conf
             kernel_default=$(grep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | grep "${NET_KERNEL}" | grep -v debug | cut -d' ' -f1 | head -n 1)
             sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
@@ -247,7 +259,8 @@ else
     
     #安装必备组件
     echo -e "\033[32m    安装必备组件包中... \033[0m"
-    yum groupinstall -y "Development Tools" && yum install -y libtool gcc gcc-c++ wget
+    yum groupinstall -y "Development Tools"
+    yum install -y libtool gcc gcc-c++ wget
     #下载并编译模块
     if [[ ! -d make_tmp ]]; then
         mkdir make_tmp
