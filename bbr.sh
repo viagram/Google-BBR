@@ -82,32 +82,29 @@ function OptNET(){
 function CHK_ELREPO(){
     if ! yum list installed elrepo-release >/dev/null 2>&1;then
         echo -ne "\033[32m    导入elrepo密钥中... \033[0m"
+        #if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
         if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
-            if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
-                echo -e "\033[31m    导入失败.\033[0m"
-                exit 1
-            else
-                echo -e "\033[32m    导入成功.\033[0m"
-            fi
+            echo -e "\033[31m    导入失败.\033[0m"
+            exit 1
+         else
+            echo -e "\033[32m    导入成功.\033[0m"
         fi
         echo -ne "\033[32m    安装elrepo-releases中... \033[0m"
         if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
+            #if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
             if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
-                if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
-                    echo -e "\033[31m     安装失败.\033[0m"
-                    exit 1
-                else
-                    echo -e "\033[32m     安装成功.\033[0m"
-                fi
+                echo -e "\033[31m     安装失败.\033[0m"
+                exit 1
+            else
+                echo -e "\033[32m     安装成功.\033[0m"
             fi
         elif [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
+            #if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
             if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
-                if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
-                    echo -e "\033[31m     安装失败.\033[0m"
-                    exit 1
-                else
-                    echo -e "\033[32m     安装成功.\033[0m"
-                fi
+                echo -e "\033[31m     安装失败.\033[0m"
+                exit 1
+            else
+                echo -e "\033[32m     安装成功.\033[0m"
             fi
         else
             echo -e "\033[31m    安装elrepo-releases失败, 暂不支持该系统.\033[0m"
