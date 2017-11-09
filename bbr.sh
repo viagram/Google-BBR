@@ -182,6 +182,28 @@ function CHK_ELREPO(){
     fi
 }
 
+function CHK_BBR(){
+    if [[ -f "/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko" ]]; then
+        printnew -green "魔改bbr模块tcp_nanqinlang已安装. "
+        if lsmod | grep nanqinlang >/dev/null 2>&1; then
+            printnew -green "魔改bbr模块tcp_nanqinlang运行. "
+            return 0
+        else
+            sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
+            echo "net.ipv4.tcp_congestion_control=nanqinlang" >> /etc/sysctl.conf
+            sysctl -p
+            if lsmod | grep nanqinlang >/dev/null 2>&1; then
+                printnew -green "魔改bbr模块tcp_nanqinlang启动成功. "
+                return 0
+            else
+                printnew -red "魔改bbr模块tcp_nanqinlang启动失败."
+                return 0
+            fi
+        fi
+    else
+        return 1
+    fi
+}
 #####################################################################################
 
 if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" && "$(Check_OS)" != "redhat7" && "$(Check_OS)" != "redhat6" ]]; then
@@ -191,7 +213,7 @@ else
     typeset -l REINSTALL
     REINSTALL="${1}"
     if [[ -n "${REINSTALL}" && "${REINSTALL}" == "install" ]]; then
-        printnew -green "将进行魔改bbr模块二次安装进程"
+        printnew -green "将进行[魔改bbr模块]二次安装进程."
         read -p "输入[y/n]选择是否继续, 默认为y：" is_go
         [[ -z "${is_go}" ]] && is_go='y'
         if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
@@ -199,12 +221,22 @@ else
             exit 0
         fi
     else
-        printnew -green "将进行魔改bbr模块首次安装进程"
-        read -p "输入[y/n]选择是否继续, 默认为y：" is_go
-        [[ -z "${is_go}" ]] && is_go='y'
-        if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
-            printnew -red "用户取消, 程序终止."
-            exit 0
+        if ! CHK_BBR >/dev/null 2>&1;then
+            printnew -green "将进行[魔改bbr模块]首次安装进程."
+            read -p "输入[y/n]选择是否继续, 默认为y：" is_go
+            [[ -z "${is_go}" ]] && is_go='y'
+            if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
+                printnew -red "用户取消, 程序终止."
+                exit 0
+            fi
+        else
+            printnew -green "将进行[魔改bbr模块]检测进程."
+            read -p "输入[y/n]选择是否继续, 默认为y：" is_go
+            [[ -z "${is_go}" ]] && is_go='y'
+            if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
+                printnew -red "用户取消, 程序终止."
+                exit 0
+            fi
         fi
     fi
     printnew -a -green "检测系统架构... "
@@ -318,23 +350,8 @@ else
     fi
 
     #检测模块状态
-    if [[ -f "/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko" ]]; then
-        printnew -green "魔改bbr模块tcp_nanqinlang已安装. "
-        if lsmod | grep nanqinlang >/dev/null 2>&1; then
-            printnew -green "魔改bbr模块tcp_nanqinlang运行. "
-            exit 0
-        else
-            sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
-            echo "net.ipv4.tcp_congestion_control=nanqinlang" >> /etc/sysctl.conf
-            sysctl -p
-            if lsmod | grep nanqinlang >/dev/null 2>&1; then
-                printnew -green "魔改bbr模块tcp_nanqinlang启动成功. "
-                exit 0
-            else
-                printnew -red "魔改bbr模块tcp_nanqinlang启动失败."
-                exit 1
-            fi
-        fi
+    if CHK_BBR; then
+        exit 0
     fi
     
     #更新启动配置并删除其它内核
