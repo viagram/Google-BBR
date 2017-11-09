@@ -6,6 +6,21 @@ export PATH
 
 MY_SCRIPT="$(dirname $(readlink -f $0))/$(basename $0)"
 
+echo -e "\033[33m"
+cat <<'EOF'
+
+###################################################################
+#                     _                                           #
+#              __   _(_) __ _  __ _ _ __ __ _ _ __ ___            #
+#              \ \ / / |/ _` |/ _` | '__/ _` | '_ ` _ \           #
+#               \ V /| | (_| | (_| | | | (_| | | | | | |          #
+#                \_/ |_|\__,_|\__, |_|  \__,_|_| |_| |_|          #
+#                             |___/                               #
+#                                                                 #
+###################################################################
+EOF
+echo -e "\033[0m"
+
 # Check If You Are Root
 if [[ $EUID -ne 0 ]]; then
     clear
@@ -37,6 +52,7 @@ function Check_OS(){
 
 function printnew(){
     typeset -l CHK
+    WENZHI=""
     RIGHT=0
     HUANHANG=0
     for PARSTR in "${@}";do
@@ -64,23 +80,21 @@ function printnew(){
                 RIGHT=1
             fi
         else
-            WENZHI="${PARSTR}"
+            WENZHI+="${PARSTR}"
         fi
     done
     COUNT=$(echo -n "${WENZHI}" | wc -L)
     if [[ ${RIGHT} -eq 1 ]];then
         tput cup $(tput lines) $[$(tput cols)-${COUNT}]
-        if [[ ${HUANHANG} -eq 1 ]];then
-            printf "${COLOUR}%-${COUNT}s\033[0m" "${WENZHI}"
-        else
-            printf "${COLOUR}%-${COUNT}s\033[0m\n" "${WENZHI}"
-        fi
+        printf "${COLOUR}%b%-${COUNT}s\033[0m" "${WENZHI}"
+        tput cup $(tput lines) 0
     else
-        tput cup $(tput lines) 2
+        tput cup $(tput lines) 0
         if [[ ${HUANHANG} -eq 1 ]];then
-            printf "${COLOUR}%-${COUNT}s\033[0m" "${WENZHI}"
+            printf "${COLOUR}%b%-${COUNT}s\033[0m" "${WENZHI}"
+            tput cup $(tput lines) ${COUNT}
         else
-            printf "${COLOUR}%-${COUNT}s\033[0m\n" "${WENZHI}"
+            printf "${COLOUR}%b%-${COUNT}s\033[0m\n" "${WENZHI}"
         fi
     fi
 }
@@ -171,9 +185,28 @@ function CHK_ELREPO(){
 #####################################################################################
 
 if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" && "$(Check_OS)" != "redhat7" && "$(Check_OS)" != "redhat6" ]]; then
-    printnew -red "目前仅支持CentOS系统."
+    printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
     exit 1
 else
+    typeset -l REINSTALL
+    REINSTALL="${1}"
+    if [[ -n "${REINSTALL}" && "${REINSTALL}" == "install" ]]; then
+        printnew -green "将进行魔改bbr模块二次安装进程"
+        read -p "输入[y/n]选择是否继续, 默认为y：" is_go
+        [[ -z "${is_go}" ]] && is_go='y'
+        if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
+            printnew -red "用户取消, 程序终止."
+            exit 0
+        fi
+    else
+        printnew -green "将进行魔改bbr模块首次安装进程"
+        read -p "输入[y/n]选择是否继续, 默认为y：" is_go
+        [[ -z "${is_go}" ]] && is_go='y'
+        if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
+            printnew -red "用户取消, 程序终止."
+            exit 0
+        fi
+    fi
     printnew -a -green "检测系统架构... "
     if ! command -v virt-what >/dev/null 2>&1; then
         yum install -y virt-what >/dev/null 2>&1
@@ -228,10 +261,10 @@ else
             sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
         fi
         if ! egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
-            echo "sh ${MY_SCRIPT}">>~/.bashrc
+            echo "sh ${MY_SCRIPT} install">>~/.bashrc
         fi
         printnew -green "初始化成功, 请重启系统后再次执行安装. "
-        read -p "  输入[y/n]选择是否重启, 默认为y：" is_reboot
+        read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
         [[ -z "${is_reboot}" ]] && is_reboot='y'
         if [[ ${is_reboot} == "y" || ${is_reboot} == "Y" ]]; then
             reboot
@@ -262,7 +295,7 @@ else
     #判断是否有新的内核
     if [[ ${VERSION_X} -ge ${VERSION_A} && ${VERSION_Y} -ge ${VERSION_B} && ${VERSION_Z} -gt ${VERSION_C} ]]; then
         printnew -green "检测到有新的内核, 是否升级? "
-        read -p "    输入[y/n]选择, 默认为y：" is_upkernel
+        read -p "输入[y/n]选择, 默认为y：" is_upkernel
         [[ -z "${is_upkernel}" ]] && is_upkernel='y'
         if [[ ${is_upkernel} == "y" || ${is_upkernel} == "Y" ]]; then
             if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1;then
@@ -270,12 +303,12 @@ else
                 rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
             fi
             if ! yum --enablerepo=elrepo-kernel -y update kernel-ml kernel-ml-devel kernel-ml-headers; then
-                printnew -red " 升级内核失败."
+                printnew -red "升级内核失败."
                 exit 1
             fi
             UP_KERNEL
         else
-            printnew -red "你选择不升级内核, 程序终止. " A
+            printnew -red "你选择不升级内核, 程序终止. "
             exit 0
         fi
     else
@@ -319,8 +352,8 @@ else
         mkdir make_tmp
     fi
     cd make_tmp
-    printnew -green "请选择你想要的魔改方案: 1.温和模式  2.暴力模式"
-    read -p "  输入[1/2]以选择相应模式. 默认为1: " mode
+    printnew -green "请选择你想要的魔改方案:\n    1.温和模式\n    2.暴力模式"
+    read -p "输入[1/2]以选择相应模式. 默认为1: " mode
     [[ -z "${mode}" ]] && mode=1
     while [[ ! "${mode}" =~ ^[1-2]$ ]]
     do
