@@ -7,7 +7,6 @@ export PATH
 MY_SCRIPT="$(dirname $(readlink -f $0))/$(basename $0)"
 
 echo -e "\033[33m"
-clear
 cat <<'EOF'
 
 ###################################################################
@@ -24,7 +23,6 @@ echo -e "\033[0m"
 
 # Check If You Are Root
 if [[ $EUID -ne 0 ]]; then
-    clear
     printnew -red "错误: 必须以root权限运行此脚本! "
     exit 1
 fi
