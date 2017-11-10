@@ -7,6 +7,7 @@ export PATH
 MY_SCRIPT="$(dirname $(readlink -f $0))/$(basename $0)"
 
 echo -e "\033[33m"
+clear
 cat <<'EOF'
 
 ###################################################################
