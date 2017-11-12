@@ -21,12 +21,6 @@ cat <<'EOF'
 EOF
 echo -e "\033[0m"
 
-# Check If You Are Root
-if [[ $EUID -ne 0 ]]; then
-    printnew -red "错误: 必须以root权限运行此脚本! "
-    exit 1
-fi
-
 function Check_OS(){
     if [[ -f /etc/redhat-release ]];then
         if egrep -i "centos.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
@@ -98,50 +92,48 @@ function printnew(){
     fi
 }
 
-
 function OptNET(){
     # 以前优化设置来自于网络, 具体用处嘛~~~我也不知道^_^.
     sysctl=/etc/sysctl.conf
     limits=/etc/security/limits.conf
-    sed -i 's/* soft nofile[[:print:]]*/* soft nofile 512000/g' $limits
-    sed -i 's/* hard nofile[[:print:]]*/* hard nofile 1024000/g' $limits
+        sed -i '/* soft nofile/d' $limits; echo '* soft nofile 512000'>>$limits
+    sed -i '/* hard nofile/d' $limits; echo '* hard nofile 1024000'>>$limits
     ulimit -n 512000
-    sed -i "s/net.ipv4.ip_forward[[:print:]]*/net.ipv4.ip_forward=0/g" $sysctl
-    sed -i "s/net.ipv4.conf.default.rp_filter[[:print:]]*/net.ipv4.conf.default.rp_filter=1/g" $sysctl
-    sed -i "s/net.ipv4.conf.default.accept_source_route[[:print:]]*/net.ipv4.conf.default.accept_source_route=0/g" $sysctl
-    sed -i "s/kernel.sysrq[[:print:]]*/kernel.sysrq=0/g" $sysctl
-    sed -i "s/kernel.core_uses_pid[[:print:]]*/kernel.core_uses_pid=1/g" $sysctl
-    sed -i "s/kernel.msgmnb[[:print:]]*/kernel.msgmnb=65536/g" $sysctl
-    sed -i "s/kernel.msgmax[[:print:]]*/kernel.msgmax=65536/g" $sysctl
-    sed -i "s/kernel.shmmax[[:print:]]*/kernel.shmmax=68719476736/g" $sysctl
-    sed -i "s/kernel.shmal[[:print:]]*/kernel.shmall=4294967296/g" $sysctl
-    sed -i "s/net.ipv4.tcp_timestamps[[:print:]]*/net.ipv4.tcp_timestamps=1/g" $sysctl
-    sed -i "s/net.ipv4.tcp_retrans_collapse[[:print:]]*/net.ipv4.tcp_retrans_collapse=0/g" $sysctl
-    sed -i "s/net.ipv4.icmp_echo_ignore_broadcasts[[:print:]]*/net.ipv4.icmp_echo_ignore_broadcasts=1/g" $sysctl
-    sed -i "s/net.ipv4.conf.all.rp_filter[[:print:]]*/net.ipv4.conf.all.rp_filter=1/g" $sysctl
-    sed -i "s/fs.inotify.max_user_watches[[:print:]]*/fs.inotify.max_user_watches=65536/g" $sysctl
-    sed -i "s/net.ipv4.conf.default.promote_secondaries[[:print:]]*/net.ipv4.conf.default.promote_secondaries=1/g" $sysctl
-    sed -i "s/net.ipv4.conf.all.promote_secondaries[[:print:]]*/net.ipv4.conf.all.promote_secondaries=1/g" $sysctl
-    sed -i "s/kernel.hung_task_timeout_secs[[:print:]]*/kernel.hung_task_timeout_secs=0/g" $sysctl
-    sed -i "s/fs.file-max[[:print:]]*/fs.file-max=1024000/g" $sysctl
-    sed -i "s/net.core.wmem_max[[:print:]]*/net.core.wmem_max=67108864/g" $sysctl
-    sed -i "s/net.core.netdev_max_backlog[[:print:]]*/net.core.netdev_max_backlog=250000/g" $sysctl
-    sed -i "s/net.core.somaxconn[[:print:]]*/net.core.somaxconn=4096/g" $sysctl
-    sed -i "s/net.ipv4.tcp_syncookies[[:print:]]*/net.ipv4.tcp_syncookies=1/g" $sysctl
-    sed -i "s/net.ipv4.tcp_tw_reuse[[:print:]]*/net.ipv4.tcp_tw_reuse=1/g" $sysctl
-    sed -i "s/net.ipv4.tcp_fin_timeout[[:print:]]*/net.ipv4.tcp_fin_timeout=30/g" $sysctl
-    sed -i "s/net.ipv4.tcp_keepalive_time[[:print:]]*/net.ipv4.tcp_keepalive_time=1200/g" $sysctl
-    sed -i "s/net.ipv4.ip_local_port_range[[:print:]]*/net.ipv4.ip_local_port_range=10000/g" $sysctl
-    sed -i "s/net.ipv4.tcp_max_syn_backlog[[:print:]]*/net.ipv4.tcp_max_syn_backlog=8192/g" $sysctl
-    sed -i "s/net.ipv4.tcp_max_tw_buckets[[:print:]]*/net.ipv4.tcp_max_tw_buckets=5000/g" $sysctl
-    sed -i "s/net.ipv4.tcp_fastopen[[:print:]]*/net.ipv4.tcp_fastopen=3/g" $sysctl
-    sed -i "s/net.ipv4.tcp_rmem[[:print:]]*/net.ipv4.tcp_rmem=4096/g" $sysctl
-    sed -i "s/net.ipv4.tcp_wmem[[:print:]]*/net.ipv4.tcp_wmem=4096/g" $sysctl
-    sed -i "s/net.ipv4.tcp_mtu_probing[[:print:]]*/net.ipv4.tcp_mtu_probing=1/g" $sysctl
-    sed -i "s/net.core.default_qdisc[[:print:]]*/net.core.default_qdisc=fq_codel/g" $sysctl
-    sed -i "s/net.ipv4.tcp_congestion_control[[:print:]]*/net.ipv4.tcp_congestion_control=nanqinlang/g" $sysctl
+    sed -i '/net.ipv4.ip_forward/d' $sysctl; echo 'net.ipv4.ip_forward=0'>>$sysctl
+    sed -i '/net.ipv4.conf.default.rp_filter/d' $sysctl; echo 'net.ipv4.conf.default.rp_filter=1'>>$sysctl
+    sed -i '/net.ipv4.conf.default.accept_source_route/d' $sysctl; echo 'net.ipv4.conf.default.accept_source_route=0'>>$sysctl
+    sed -i '/kernel.sysrq/d' $sysctl; echo 'kernel.sysrq=0'>>$sysctl
+    sed -i '/kernel.core_uses_pid/d' $sysctl; echo 'kernel.core_uses_pid=1'>>$sysctl
+    sed -i '/kernel.msgmnb/d' $sysctl; echo 'kernel.msgmnb=65536'>>$sysctl
+    sed -i '/kernel.msgmax/d' $sysctl; echo 'kernel.msgmax=65536'>>$sysctl
+    sed -i '/kernel.shmmax/d' $sysctl; echo 'kernel.shmmax=68719476736'>>$sysctl
+    sed -i '/kernel.shmall/d' $sysctl; echo 'kernel.shmall=4294967296'>>$sysctl
+    sed -i '/net.ipv4.tcp_timestamps/d' $sysctl; echo 'net.ipv4.tcp_timestamps=1'>>$sysctl
+    sed -i '/net.ipv4.tcp_retrans_collapse/d' $sysctl; echo 'net.ipv4.tcp_retrans_collapse=0'>>$sysctl
+    sed -i '/net.ipv4.icmp_echo_ignore_broadcasts/d' $sysctl; echo 'net.ipv4.icmp_echo_ignore_broadcasts=1'>>$sysctl
+    sed -i '/net.ipv4.conf.all.rp_filter/d' $sysctl; echo 'net.ipv4.conf.all.rp_filter=1'>>$sysctl
+    sed -i '/fs.inotify.max_user_watches/d' $sysctl; echo 'fs.inotify.max_user_watches=65536'>>$sysctl
+    sed -i '/net.ipv4.conf.default.promote_secondaries/d' $sysctl; echo 'net.ipv4.conf.default.promote_secondaries=1'>>$sysctl
+    sed -i '/net.ipv4.conf.all.promote_secondaries/d' $sysctl; echo 'net.ipv4.conf.all.promote_secondaries=1'>>$sysctl
+    sed -i '/kernel.hung_task_timeout_secs=0/d' $sysctl; echo 'kernel.hung_task_timeout_secs=0'>>$sysctl
+    sed -i '/fs.file-max/d' $sysctl; echo 'fs.file-max=1024000'>>$sysctl
+    sed -i '/net.core.wmem_max/d' $sysctl; echo 'net.core.wmem_max=67108864'>>$sysctl
+    sed -i '/net.core.netdev_max_backlog/d' $sysctl; echo 'net.core.netdev_max_backlog=250000'>>$sysctl
+    sed -i '/net.core.somaxconn/d' $sysctl; echo 'net.core.somaxconn=4096'>>$sysctl
+    sed -i '/net.ipv4.tcp_syncookies/d' $sysctl; echo 'net.ipv4.tcp_syncookies=1'>>$sysctl
+    sed -i '/net.ipv4.tcp_tw_reuse/d' $sysctl; echo 'net.ipv4.tcp_tw_reuse=1'>>$sysctl
+    sed -i '/net.ipv4.tcp_fin_timeout/d' $sysctl; echo 'net.ipv4.tcp_fin_timeout=30'>>$sysctl
+    sed -i '/net.ipv4.tcp_keepalive_time/d' $sysctl; echo 'net.ipv4.tcp_keepalive_time=1200'>>$sysctl
+    sed -i '/net.ipv4.ip_local_port_range/d' $sysctl; echo 'net.ipv4.ip_local_port_range=10000'>>$sysctl
+    sed -i '/net.ipv4.tcp_max_syn_backlog/d' $sysctl; echo 'net.ipv4.tcp_max_syn_backlog=8192'>>$sysctl
+    sed -i '/net.ipv4.tcp_max_tw_buckets/d' $sysctl; echo 'net.ipv4.tcp_max_tw_buckets=5000'>>$sysctl
+    sed -i '/net.ipv4.tcp_fastopen/d' $sysctl; echo 'net.ipv4.tcp_fastopen=3'>>$sysctl
+    sed -i '/net.ipv4.tcp_rmem/d' $sysctl; echo 'net.ipv4.tcp_rmem=4096'>>$sysctl
+    sed -i '/net.ipv4.tcp_wmem/d' $sysctl; echo 'net.ipv4.tcp_wmem=4096'>>$sysctl
+    sed -i '/net.ipv4.tcp_mtu_probing/d' $sysctl; echo 'net.ipv4.tcp_mtu_probing=1'>>$sysctl
+    sed -i '/net.core.default_qdisc/d' $sysctl; echo 'net.core.default_qdisc=fq_codel'>>$sysctl
+    sed -i '/net.ipv4.tcp_congestion_control/d' $sysctl; echo 'net.ipv4.tcp_congestion_control=nanqinlang'>>$sysctl
     sysctl -p
-    
 }
 
 function CHK_ELREPO(){
@@ -203,6 +195,14 @@ function CHK_BBR(){
         return 1
     fi
 }
+
+
+# Check If You Are Root
+if [[ $EUID -ne 0 ]]; then
+    printnew -red "错误: 必须以root权限运行此脚本! "
+    exit 1
+fi
+
 #####################################################################################
 
 if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" && "$(Check_OS)" != "redhat7" && "$(Check_OS)" != "redhat6" ]]; then
