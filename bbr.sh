@@ -131,8 +131,6 @@ function OptNET(){
     sed -i '/net.ipv4.tcp_rmem/d' $sysctl; echo 'net.ipv4.tcp_rmem=4096'>>$sysctl
     sed -i '/net.ipv4.tcp_wmem/d' $sysctl; echo 'net.ipv4.tcp_wmem=4096'>>$sysctl
     sed -i '/net.ipv4.tcp_mtu_probing/d' $sysctl; echo 'net.ipv4.tcp_mtu_probing=1'>>$sysctl
-    sed -i '/net.core.default_qdisc/d' $sysctl; echo 'net.core.default_qdisc=fq_codel'>>$sysctl
-    sed -i '/net.ipv4.tcp_congestion_control/d' $sysctl; echo 'net.ipv4.tcp_congestion_control=nanqinlang'>>$sysctl
     sysctl -p
 }
 
@@ -174,7 +172,8 @@ function CHK_ELREPO(){
 }
 
 function CHK_BBR(){
-    if [[ -f "/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko" ]]; then
+    BBR_KO="/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko"
+    if [[ -e "${BBR_KO}" ]]; then
         printnew -green "魔改bbr模块tcp_nanqinlang已安装. "
         if lsmod | grep nanqinlang >/dev/null 2>&1; then
             printnew -green "魔改bbr模块tcp_nanqinlang运行. "
@@ -183,12 +182,14 @@ function CHK_BBR(){
             sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
             echo "net.ipv4.tcp_congestion_control=nanqinlang" >> /etc/sysctl.conf
             sysctl -p
+            insmod ${BBR_KO}
+            depmod -a
             if lsmod | grep nanqinlang >/dev/null 2>&1; then
                 printnew -green "魔改bbr模块tcp_nanqinlang启动成功. "
                 return 0
             else
                 printnew -red "魔改bbr模块tcp_nanqinlang启动失败."
-                return 0
+                return 1
             fi
         fi
     else
@@ -196,6 +197,10 @@ function CHK_BBR(){
     fi
 }
 
+function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; } #大于
+function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1"; } #大于或等于
+function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; } #小于
+function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1"; } #小于或等于
 
 # Check If You Are Root
 if [[ $EUID -ne 0 ]]; then
@@ -229,7 +234,7 @@ else
                 exit 0
             fi
         else
-            printnew -green "将进行[魔改bbr模块]检测进程."
+            printnew -green "将进行[魔改bbr模块]安装检测."
             read -p "输入[y/n]选择是否继续, 默认为y：" is_go
             [[ -z "${is_go}" ]] && is_go='y'
             if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
@@ -270,16 +275,9 @@ else
     fi
 
     GET_INFO=$(echo N | yum --enablerepo=elrepo-kernel install kernel-ml)
-    KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1}\.[0-9]{1,2}\.[0-9]{1,2}[-$]' | egrep -io '[0-9]{1}\.[0-9]{1,2}\.[0-9]{1,2}' | head -n1)
-    YUMLOG_TMP=$(echo ${GET_INFO} | egrep -io '/tmp/[[:graph:]]*[yumtx]')
-    rm -f "${YUMLOG_TMP}"
-    VERSION_X=$(echo ${KERNEL_NET} | awk -F '.' '{print $1}')
-    VERSION_Y=$(echo ${KERNEL_NET} | awk -F '.' '{print $2}')
-    VERSION_Z=$(echo ${KERNEL_NET} | awk -F '.' '{print $3}')
+    echo ${GET_INFO} | egrep -io '/tmp/[[:graph:]]*[yumtx]' | xargs rm -f
+    KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1}\.[0-9]{1,2}\.[0-9]{1,2}[-$]' | egrep -io '[0-9]{1}\.[0-9]{1,2}\.[0-9]{1,2}' | sort -Vu)
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}')
-    VERSION_A=$(echo ${KERNEL_VER} | awk -F '.' '{print $1}')
-    VERSION_B=$(echo ${KERNEL_VER} | awk -F '.' '{print $2}')
-    VERSION_C=$(echo ${KERNEL_VER} | awk -F '.' '{print $3}')
     function UP_KERNEL(){
         printnew -green "正在设置新内核的启动顺序... "
         if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
@@ -294,7 +292,7 @@ else
         if ! egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
             echo "sh ${MY_SCRIPT} install">>~/.bashrc
         fi
-        printnew -green "初始化成功, 请重启系统后再次执行安装. "
+        printnew -green "设置成功, 请重启系统后再次执行安装. "
         read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
         [[ -z "${is_reboot}" ]] && is_reboot='y'
         if [[ ${is_reboot} == "y" || ${is_reboot} == "Y" ]]; then
@@ -304,7 +302,7 @@ else
             exit 0
         fi
     }
-    if [[ ${VERSION_A} -ge 4 && ${VERSION_B} -ge 10 && ${VERSION_C} -gt 0 ]]; then
+    if version_gt ${KERNEL_NET} '4.10.0'; then
         printnew -r -green "通过"
     else
         printnew -r -red "失败"
@@ -324,7 +322,7 @@ else
         UP_KERNEL
     fi
     #判断是否有新的内核
-    if [[ ${VERSION_X} -ge ${VERSION_A} && ${VERSION_Y} -ge ${VERSION_B} && ${VERSION_Z} -gt ${VERSION_C} ]]; then
+    if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
         printnew -green "检测到有新的内核, 是否升级? "
         read -p "输入[y/n]选择, 默认为y：" is_upkernel
         [[ -z "${is_upkernel}" ]] && is_upkernel='y'
@@ -411,7 +409,7 @@ else
             printnew -r -green "安装成功"
             printnew -a -green "优化并启用魔改方案... "
             OptNET >/dev/null 2>&1
-            if lsmod | grep nanqinlang >/dev/null 2>&1; then
+            if CHK_BBR >/dev/null 2>&1; then
                 printnew -r -green "启动成功"
             else
                 printnew -r -red "启动失败"
