@@ -279,6 +279,18 @@ else
     KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1}\.[0-9]{1,2}\.[0-9]{1,2}[-$]' | egrep -io '[0-9]{1}\.[0-9]{1,2}\.[0-9]{1,2}' | sort -Vu)
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}')
     function UP_KERNEL(){
+        if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1;then
+            printnew -green "为避免冲突, 正在删除旧版本的kernel-headers... "
+            rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
+        fi
+        #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
+        printnew -green "安装最新版本ml内核... "
+        if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
+            printnew -red "内核安装失败."
+            exit 1
+        else
+            printnew -green "内核安装成功."
+        fi
         printnew -green "正在设置新内核的启动顺序... "
         if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
             grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
@@ -307,18 +319,6 @@ else
     else
         printnew -r -red "失败"
         printnew -green "内核过旧, 升级内核... "
-        if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1;then
-            printnew -green "为避免冲突, 正在删除旧版本的kernel-headers... "
-            rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
-        fi
-        #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
-        printnew -green "安装最新版本ml内核... "
-        if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
-            printnew -red "内核安装失败."
-            exit 1
-        else
-            printnew -green "内核安装成功."
-        fi
         UP_KERNEL
     fi
     #判断是否有新的内核
@@ -327,14 +327,6 @@ else
         read -p "输入[y/n]选择, 默认为y：" is_upkernel
         [[ -z "${is_upkernel}" ]] && is_upkernel='y'
         if [[ ${is_upkernel} == "y" || ${is_upkernel} == "Y" ]]; then
-            if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1;then
-                printnew -green "为避免冲突, 正在删除旧版本的kernel-headers... "
-                rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
-            fi
-            if ! yum --enablerepo=elrepo-kernel -y update kernel-ml kernel-ml-devel kernel-ml-headers; then
-                printnew -red "升级内核失败."
-                exit 1
-            fi
             UP_KERNEL
         else
             printnew -red "你选择不升级内核, 程序终止. "
