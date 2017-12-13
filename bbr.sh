@@ -277,8 +277,8 @@ else
 
     GET_INFO=$(echo N | yum --enablerepo=elrepo-kernel install kernel-ml)
     echo ${GET_INFO} | egrep -io '/tmp/[[:graph:]]*[yumtx]' | xargs rm -f
-    KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1}\.[0-9]{1,2}\.[0-9]{1,2}[-$]' | egrep -io '[0-9]{1}\.[0-9]{1,2}\.[0-9]{1,2}' | sort -Vu)
-    KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}')
+    KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}' | sort -Vu)
+    KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}')
     function UP_KERNEL(){
         if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1;then
             printnew -green "为避免冲突, 正在删除旧版本的kernel-headers... "
