@@ -324,9 +324,9 @@ else
     fi
     #判断是否有新的内核
     if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
-        printnew -green "检测到有新的内核, 是否升级? "
-        printnew -green "最新内核: ${KERNEL_NET} "
         printnew -green "当前内核: ${KERNEL_VER}"
+        printnew -green "最新内核: ${KERNEL_NET} "
+        printnew -green "检测到有新的内核, 是否升级? "
         read -p "输入[y/n]选择, 默认为y：" is_upkernel
         [[ -z "${is_upkernel}" ]] && is_upkernel='y'
         if [[ ${is_upkernel} == "y" || ${is_upkernel} == "Y" ]]; then
