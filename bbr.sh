@@ -218,11 +218,6 @@ else
     typeset -l REINSTALL
     REINSTALL="${1}"
     if [[ -n "${REINSTALL}" && "${REINSTALL}" == "install" ]]; then
-        #删除二次登陆启动项
-        if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
-            MY_SCRIPT2=${MY_SCRIPT//\//\\/}
-            sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
-        fi
         printnew -green "将进行[魔改bbr模块]二次安装进程."
         read -p "输入[y/n]选择是否继续, 默认为y：" is_go
         [[ -z "${is_go}" ]] && is_go='y'
@@ -252,6 +247,11 @@ else
     printnew -a -green "检测系统架构... "
     if ! command -v virt-what >/dev/null 2>&1; then
         yum install -y virt-what >/dev/null 2>&1
+    fi
+    #删除二次登陆启动项
+    if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
+        MY_SCRIPT2=${MY_SCRIPT//\//\\/}
+        sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
     fi
     if [[ "$(virt-what)" == "openvz" ]]; then
         printnew -r -red "不支持openvz架构"
