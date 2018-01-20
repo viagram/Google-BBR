@@ -11,10 +11,10 @@
 
 安装方法1:
 
-    wget -O bbr.sh https://raw.githubusercontent.com/viagram/Google-BBR/master/bbr.sh && sh bbr.sh
+    wget -O bbr.sh https://github.com/viagram/Google-BBR/raw/master/bbr.sh && sh bbr.sh
 
 安装方法2:
 
-    curl -sk -o bbr.sh https://raw.githubusercontent.com/viagram/Google-BBR/master/bbr.sh && sh bbr.sh
+    curl -skLo bbr.sh https://github.com/viagram/Google-BBR/raw/master/bbr.sh && sh bbr.sh
 
 按提示操作, 基本按几下回车键即可.
