@@ -20,6 +20,29 @@ cat <<'EOF'
 EOF
 echo -e "\033[0m"
 
+function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; } #大于
+function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1"; } #大于或等于
+function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; } #小于
+function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1"; } #小于或等于
+
+function chk_what(){
+    printnew -a -green "检测系统架构... "
+    if ! command -v virt-what >/dev/null 2>&1; then
+        yum install -y virt-what >/dev/null 2>&1
+    fi
+    if [[ "$(virt-what)" == "openvz" ]]; then
+        printnew -r -red "不支持openvz架构"
+        exit 1
+    else
+        if [[ "$(uname -m)" != "x86_64" ]]; then
+            printnew -red "目前仅支持x86_64架构."
+            exit 1
+        else
+            printnew -r -green "通过"
+        fi
+    fi
+}
+
 function Check_OS(){
     if [[ -f /etc/redhat-release ]];then
         if egrep -i "centos.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
@@ -226,29 +249,6 @@ function UnInstall_BBR(){
         fi
     else
         printnew -red "检测到系统没有安装魔改bbr模块. "
-    fi
-}
-
-function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; } #大于
-function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1"; } #大于或等于
-function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; } #小于
-function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1"; } #小于或等于
-
-function chk_what(){
-    printnew -a -green "检测系统架构... "
-    if ! command -v virt-what >/dev/null 2>&1; then
-        yum install -y virt-what >/dev/null 2>&1
-    fi
-    if [[ "$(virt-what)" == "openvz" ]]; then
-        printnew -r -red "不支持openvz架构"
-        exit 1
-    else
-        if [[ "$(uname -m)" != "x86_64" ]]; then
-            printnew -red "目前仅支持x86_64架构."
-            exit 1
-        else
-            printnew -r -green "通过"
-        fi
     fi
 }
 
