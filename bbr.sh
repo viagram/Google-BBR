@@ -194,8 +194,17 @@ function CHK_BBR(){
             fi
         fi
     else
+        printnew -red "检测到系统没有安装魔改bbr模块. "
         return 1
     fi
+}
+
+function UnInstall_BBR(){
+	sed -i '/net\.core\.default_qdisc=/d'          /etc/sysctl.conf
+	sed -i '/net\.ipv4\.tcp_congestion_control=/d' /etc/sysctl.conf
+	sysctl -p >/dev/null 2>&1
+	rm /lib/modules/`uname -r`/kernel/net/ipv4/tcp_nanqinlang.ko >/dev/null 2>&1
+	printnew -green "删除成功, 请重启系统以停止魔改bbr模块."
 }
 
 function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; } #大于
@@ -218,7 +227,7 @@ else
     typeset -l REINSTALL
     REINSTALL="${1}"
     if [[ -n "${REINSTALL}" && "${REINSTALL}" == "install" ]]; then
-        printnew -green "将进行[魔改bbr模块]二次安装进程."
+        printnew -green "将进行魔改bbr模块二次安装进程."
         read -p "输入[y/n]选择是否继续, 默认为y：" is_go
         [[ -z "${is_go}" ]] && is_go='y'
         if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
@@ -226,22 +235,38 @@ else
             exit 0
         fi
     else
-        if ! CHK_BBR >/dev/null 2>&1;then
-            printnew -green "将进行[魔改bbr模块]首次安装进程."
-            read -p "输入[y/n]选择是否继续, 默认为y：" is_go
-            [[ -z "${is_go}" ]] && is_go='y'
-            if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
-                printnew -red "用户取消, 程序终止."
+        printnew -green "请输入数字进行选择."
+        printnew -green "   1, 安装魔改bbr模块"
+        printnew -green "   2, 查看魔改bbr状态"
+        printnew -green "   3, 删除魔改bbr模块"
+        read -p "输入[1/2/3]以选择相应模式. 默认为1: " mode
+        [[ -z "${mode}" ]] && mode=1
+        #while [[ ! "${forceinstall}" =~ ^[YyNn]$ ]]; do
+        while [[ ! "${mode}" =~ ^[1-3]$ ]]; do
+            printnew -red "无效输入."
+            read -p "请重新输入数字以选择:" mode
+        done
+        if [[ ${mode} -eq 3 ]]; then
+            if CHK_BBR >/dev/null 2>&1; then
+                printnew -green "删除魔改bbr模块中..."
+                UnInstall_BBR
+            else
+                printnew -red "检测到系统没有安装魔改bbr模块. "
+            fi
+            exit 0
+        fi
+        if [[ ${mode} -eq 2 ]]; then
+            # 查看魔改bbr状态
+            CHK_BBR
+            exit 0
+        fi
+        if [[ ${mode} -eq 1 ]]; then
+            #检测模块状态
+            if CHK_BBR >/dev/null 2>&1; then
+                printnew "\033[31m提示: \033[0m\033[32m检测到系统已安装魔改bbr模块. "
                 exit 0
             fi
-        else
-            printnew -green "将进行[魔改bbr模块]安装检测."
-            read -p "输入[y/n]选择是否继续, 默认为y：" is_go
-            [[ -z "${is_go}" ]] && is_go='y'
-            if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
-                printnew -red "用户取消, 程序终止."
-                exit 0
-            fi
+            printnew -green "进行[魔改bbr模块]安装进程..."
         fi
     fi
     printnew -a -green "检测系统架构... "
@@ -339,11 +364,6 @@ else
         if lsmod | grep nanqinlang >/dev/null 2>&1; then
             printnew -green "系统内核已是最新版本. "
         fi
-    fi
-
-    #检测模块状态
-    if CHK_BBR; then
-        exit 0
     fi
     
     #更新启动配置并删除其它内核
