@@ -171,10 +171,17 @@ function CHK_ELREPO(){
 }
 
 function CHK_BBR(){
-    BBR_KO="/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko"
-    if [[ -e "${BBR_KO}" ]]; then
-        printnew -green "魔改bbr模块tcp_nanqinlang已安装. "
+    function CHK_BBRUN(){
         if lsmod | grep nanqinlang >/dev/null 2>&1; then
+            return 0
+        else
+            return 1
+        fi
+    }
+    BBR_KO="/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko"
+    if [[ -e "${BBR_KO}" && CHK_BBRUN ]]; then
+        printnew -green "魔改bbr模块tcp_nanqinlang已安装. "
+        if CHK_BBRUN; then
             printnew -green "魔改bbr模块tcp_nanqinlang运行. "
             return 0
         else
@@ -185,7 +192,7 @@ function CHK_BBR(){
             sysctl -p
             insmod ${BBR_KO}
             depmod -a
-            if lsmod | grep nanqinlang >/dev/null 2>&1; then
+            if CHK_BBRUN; then
                 printnew -green "魔改bbr模块tcp_nanqinlang启动成功. "
                 return 0
             else
@@ -200,17 +207,50 @@ function CHK_BBR(){
 }
 
 function UnInstall_BBR(){
-	sed -i '/net\.core\.default_qdisc=/d'          /etc/sysctl.conf
-	sed -i '/net\.ipv4\.tcp_congestion_control=/d' /etc/sysctl.conf
-	sysctl -p >/dev/null 2>&1
-	rm /lib/modules/`uname -r`/kernel/net/ipv4/tcp_nanqinlang.ko >/dev/null 2>&1
-	printnew -green "删除成功, 请重启系统以停止魔改bbr模块."
+    if CHK_BBR; then
+        sed -i '/net\.core\.default_qdisc=/d'          /etc/sysctl.conf
+        sed -i '/net\.ipv4\.tcp_congestion_control=/d' /etc/sysctl.conf
+        sysctl -p >/dev/null 2>&1
+        rm /lib/modules/`uname -r`/kernel/net/ipv4/tcp_nanqinlang.ko >/dev/null 2>&1
+        printnew -green "删除成功, 请重启系统以停止魔改bbr模块."
+        read -p "输入[y/n]以选择是否重启系统. 默认为y: " yn_reboot
+        [[ -z "${yn_reboot}" ]] && yn_reboot=y
+        while [[ ! "${yn_reboot}" =~ ^[YyNn]$ ]]; do
+            printnew -red "无效输入."
+            read -p "请重新输入:" yn_reboot
+        done
+        if [[ ${yn_reboot} == "y" || ${yn_reboot} == "Y" ]]; then
+            printnew -green "重启系统中..."
+            sleep 1
+            reboot
+        fi
+    else
+        printnew -red "检测到系统没有安装魔改bbr模块. "
+    fi
 }
 
 function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; } #大于
 function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1"; } #大于或等于
 function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; } #小于
 function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1"; } #小于或等于
+
+function chk_what(){
+    printnew -a -green "检测系统架构... "
+    if ! command -v virt-what >/dev/null 2>&1; then
+        yum install -y virt-what >/dev/null 2>&1
+    fi
+    if [[ "$(virt-what)" == "openvz" ]]; then
+        printnew -r -red "不支持openvz架构"
+        exit 1
+    else
+        if [[ "$(uname -m)" != "x86_64" ]]; then
+            printnew -red "目前仅支持x86_64架构."
+            exit 1
+        else
+            printnew -r -green "通过"
+        fi
+    fi
+}
 
 # Check If You Are Root
 if [[ $EUID -ne 0 ]]; then
@@ -220,6 +260,12 @@ fi
 
 #####################################################################################
 
+    #删除二次登陆启动项
+    if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
+        MY_SCRIPT2=${MY_SCRIPT//\//\\/}
+        sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
+    fi
+    
 if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" && "$(Check_OS)" != "redhat7" && "$(Check_OS)" != "redhat6" ]]; then
     printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
     exit 1
@@ -233,6 +279,11 @@ else
         if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
             printnew -red "用户取消, 程序终止."
             exit 0
+        fi
+        #删除二次登陆启动项
+        if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
+            MY_SCRIPT2=${MY_SCRIPT//\//\\/}
+            sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
         fi
     else
         printnew -green "请输入数字进行选择."
@@ -260,46 +311,16 @@ else
             CHK_BBR
             exit 0
         fi
-        if [[ ${mode} -eq 1 ]]; then
-            #检测模块状态
-            if CHK_BBR >/dev/null 2>&1; then
-                printnew "\033[31m提示: \033[0m\033[32m检测到系统已安装魔改bbr模块. "
-                exit 0
-            fi
-            printnew -green "进行[魔改bbr模块]安装进程..."
-        fi
     fi
-    printnew -a -green "检测系统架构... "
-    if ! command -v virt-what >/dev/null 2>&1; then
-        yum install -y virt-what >/dev/null 2>&1
-    fi
-    #删除二次登陆启动项
-    if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
-        MY_SCRIPT2=${MY_SCRIPT//\//\\/}
-        sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
-    fi
-    if [[ "$(virt-what)" == "openvz" ]]; then
-        printnew -r -red "不支持openvz架构"
-        exit 1
-    else
-        printnew -r -green "通过"
-    fi
-    if [[ "$(uname -m)" != "x86_64" ]]; then
-        printnew -red "目前仅支持x86_64架构."
-    fi
+
+    #检测系统架构
+    chk_what
     #检测内核
     CHK_ELREPO
     printnew -a -green "检测系统内核... "
-    if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
-        BIT=7
-    fi
-    if [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
-        BIT=6
-    fi
     if ! command -v curl >/dev/null 2>&1; then
         yum install -y curl >/dev/null 2>&1
     fi
-
     GET_INFO=$(echo N | yum --enablerepo=elrepo-kernel install kernel-ml)
     echo ${GET_INFO} | egrep -io '/tmp/[[:graph:]]*[yumtx]' | xargs rm -f
     KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}' | sort -Vu)
@@ -365,7 +386,12 @@ else
             printnew -green "系统内核已是最新版本. "
         fi
     fi
-    
+    if CHK_BBR >/dev/null 2>&1; then
+        printnew "\033[31m提示: \033[0m\033[32m检测到系统已安装魔改bbr模块. "
+        exit 0
+    else
+        printnew -green "进行[魔改bbr模块]安装进程..."
+    fi
     #更新启动配置并删除其它内核
     if rpm -qa | grep kernel | grep -v "${KERNEL_VER}" >/dev/null 2>&1;then
         printnew -green "删除其它老旧内核... "
@@ -413,16 +439,13 @@ else
                 printnew -r -green "启动成功"
             else
                 printnew -r -red "启动失败"
-                exit 1
             fi
         else
             printnew -r -red "安装失败"
-            exit 1
         fi
     else
         printnew -r -red "编译失败"
-        exit 1
     fi
-    cd - >/dev/null 2>&1
+    cd make_tmp/.. >/dev/null 2>&1
     rm -rf make_tmp
 fi
