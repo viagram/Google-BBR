@@ -19,51 +19,16 @@ cat <<'EOF'
 ###################################################################
 EOF
 echo -e "\033[0m"
-
+# Check If You Are Root
+if [[ $EUID -ne 0 ]]; then
+    printnew -red "错误: 必须以root权限运行此脚本! "
+    exit 1
+fi
+ 
 function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; } #大于
 function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1"; } #大于或等于
 function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; } #小于
 function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1"; } #小于或等于
-
-function chk_what(){
-    printnew -a -green "检测系统架构... "
-    if ! command -v virt-what >/dev/null 2>&1; then
-        yum install -y virt-what >/dev/null 2>&1
-    fi
-    if [[ "$(virt-what)" == "openvz" ]]; then
-        printnew -r -red "不支持openvz架构"
-        exit 1
-    else
-        if [[ "$(uname -m)" != "x86_64" ]]; then
-            printnew -red "目前仅支持x86_64架构."
-            exit 1
-        else
-            printnew -r -green "通过"
-        fi
-    fi
-}
-
-function Check_OS(){
-    if [[ -f /etc/redhat-release ]];then
-        if egrep -i "centos.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
-            echo 'centos6'
-        elif egrep -i "centos.*7\..*" /etc/redhat-release >/dev/null 2>&1;then
-            echo 'centos7'
-        elif egrep -i "Red.*Hat.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
-            echo 'redhat6'
-        elif egrep -i "Red.*Hat.*7\..*" /etc/redhat-release >/dev/null 2>&1;then
-            echo 'redhat7'
-        fi
-    elif [[ -f /etc/issue ]];then
-        if egrep -i "debian" /etc/issue >/dev/null 2>&1;then
-            echo 'debian'
-        elif egrep -i "ubuntu" /etc/issue >/dev/null 2>&1;then
-            echo 'ubuntu'
-        fi
-    else
-        echo 'unknown'
-    fi
-}
 
 function printnew(){
     typeset -l CHK
@@ -114,6 +79,46 @@ function printnew(){
     fi
 }
 
+function chk_what(){
+    printnew -a -green "检测系统架构... "
+    if ! command -v virt-what >/dev/null 2>&1; then
+        yum install -y virt-what >/dev/null 2>&1
+    fi
+    if [[ "$(virt-what)" == "openvz" ]]; then
+        printnew -r -red "不支持openvz架构"
+        exit 1
+    else
+        if [[ "$(uname -m)" != "x86_64" ]]; then
+            printnew -red "目前仅支持x86_64架构."
+            exit 1
+        else
+            printnew -r -green "通过"
+        fi
+    fi
+}
+
+function Check_OS(){
+    if [[ -f /etc/redhat-release ]];then
+        if egrep -i "centos.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
+            echo 'centos6'
+        elif egrep -i "centos.*7\..*" /etc/redhat-release >/dev/null 2>&1;then
+            echo 'centos7'
+        elif egrep -i "Red.*Hat.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
+            echo 'redhat6'
+        elif egrep -i "Red.*Hat.*7\..*" /etc/redhat-release >/dev/null 2>&1;then
+            echo 'redhat7'
+        fi
+    elif [[ -f /etc/issue ]];then
+        if egrep -i "debian" /etc/issue >/dev/null 2>&1;then
+            echo 'debian'
+        elif egrep -i "ubuntu" /etc/issue >/dev/null 2>&1;then
+            echo 'ubuntu'
+        fi
+    else
+        echo 'unknown'
+    fi
+}
+
 function OptNET(){
     # 以前优化设置来自于网络, 具体用处嘛~~~我也不知道^_^.
     sysctl=/etc/sysctl.conf
@@ -156,7 +161,7 @@ function OptNET(){
     sysctl -p
 }
 
-function CHK_ELREPO(){
+function check_elrepo(){
     printnew -a -green "检查elrepo安装源... "
     if ! yum list installed elrepo-release >/dev/null 2>&1;then
         printnew -r -red "失败"
@@ -193,44 +198,50 @@ function CHK_ELREPO(){
     fi
 }
 
-function CHK_BBR(){
-    function CHK_BBRUN(){
-        if lsmod | grep nanqinlang >/dev/null 2>&1; then
+function check_bbr(){
+    BBR_KO="/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko"
+    if lsmod | grep nanqinlang >/dev/null 2>&1; then
+        printnew -green "魔改bbr模块tcp_nanqinlang运行中. "
+        return 0
+    else
+        if [[ -e "${BBR_KO}" ]]; then
+            printnew -red "魔改bbr模块没有运行. "
+            return 1
+        else
+            printnew -red "魔改bbr模块没有安装. "
+            return 2
+        fi
+    fi
+}
+
+function apply_bbr(){
+    if [[ check_bbr -eq 0 ]]; then
+        printnew -green "魔改bbr模块运行中. "
+        return 0
+    elif [[ check_bbr -eq 1 ]]; then
+        sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
+        echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
+        sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
+        echo "net.ipv4.tcp_congestion_control=nanqinlang" >> /etc/sysctl.conf
+        sysctl -p >/dev/null 2>&1
+        #BBR_KO="/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko"
+        insmod ${BBR_KO}
+        depmod -a
+        if check_bbr; then
+            printnew -green "魔改bbr模块启动成功. "
             return 0
         else
+            printnew -red "魔改bbr模块启动失败."
             return 1
         fi
-    }
-    BBR_KO="/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko"
-    if [[ -e "${BBR_KO}" && CHK_BBRUN ]]; then
-        printnew -green "魔改bbr模块tcp_nanqinlang已安装. "
-        if CHK_BBRUN; then
-            printnew -green "魔改bbr模块tcp_nanqinlang运行. "
-            return 0
-        else
-            sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
-            echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-            sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
-            echo "net.ipv4.tcp_congestion_control=nanqinlang" >> /etc/sysctl.conf
-            sysctl -p
-            insmod ${BBR_KO}
-            depmod -a
-            if CHK_BBRUN; then
-                printnew -green "魔改bbr模块tcp_nanqinlang启动成功. "
-                return 0
-            else
-                printnew -red "魔改bbr模块tcp_nanqinlang启动失败."
-                return 1
-            fi
-        fi
-    else
-        printnew -red "检测到系统没有安装魔改bbr模块. "
+    elif [[ check_bbr -eq 2 ]]; then
+        printnew -red "魔改bbr模块没有安装. "
         return 1
     fi
 }
 
-function UnInstall_BBR(){
-    if CHK_BBR; then
+function uninstall_bbr(){
+    if check_bbr >/dev/null 2>&1; then
         sed -i '/net\.core\.default_qdisc=/d'          /etc/sysctl.conf
         sed -i '/net\.ipv4\.tcp_congestion_control=/d' /etc/sysctl.conf
         sysctl -p >/dev/null 2>&1
@@ -252,20 +263,81 @@ function UnInstall_BBR(){
     fi
 }
 
-# Check If You Are Root
-if [[ $EUID -ne 0 ]]; then
-    printnew -red "错误: 必须以root权限运行此脚本! "
-    exit 1
-fi
-
-#####################################################################################
-
-    #删除二次登陆启动项
-    if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
-        MY_SCRIPT2=${MY_SCRIPT//\//\\/}
-        sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
+function update_kernel(){
+    if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1;then
+        printnew -green "为避免冲突, 正在删除旧版本的kernel-headers... "
+        rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
     fi
-    
+    #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
+    printnew -green "安装最新版本ml内核... "
+    if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
+        printnew -red "内核安装失败."
+        exit 1
+    else
+        printnew -green "内核安装成功."
+    fi
+    printnew -green "正在设置新内核的启动顺序... "
+    if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
+        grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
+        grub2-set-default 0 >/dev/null 2>&1
+    fi
+    if [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
+        #sed -i "s/^default.*/default=0/" /boot/grub/grub.conf
+        kernel_default=$(grep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | grep "${NET_KERNEL}" | grep -v debug | cut -d' ' -f1 | head -n 1)
+        sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
+    fi
+    if ! egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
+        echo "sh ${MY_SCRIPT} install">>~/.bashrc
+    fi
+    printnew -green "设置成功, 请重启系统后再次执行安装. "
+    read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
+    [[ -z "${is_reboot}" ]] && is_reboot='y'
+    if [[ ${is_reboot} == "y" || ${is_reboot} == "Y" ]]; then
+        reboot
+        exit 0
+    else
+        exit 0
+    fi
+}
+
+function chk_kernel(){
+    printnew -a -green "检测系统内核... "
+    if ! command -v curl >/dev/null 2>&1; then
+        yum install -y curl >/dev/null 2>&1
+    fi
+    GET_INFO=$(echo N | yum --enablerepo=elrepo-kernel install kernel-ml)
+    echo ${GET_INFO} | egrep -io '/tmp/[[:graph:]]*[yumtx]' | xargs rm -f
+    KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}' | sort -Vu)
+    KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}')
+
+    if version_gt ${KERNEL_NET} '4.10.0'; then
+        printnew -r -green "通过"
+        #判断是否有新的内核
+        if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
+            printnew -green "当前内核: ${KERNEL_VER}"
+            printnew -green "最新内核: ${KERNEL_NET} "
+            printnew -green "检测到有新的内核, 是否升级? "
+            read -p "输入[y/n]选择, 默认为y：" is_upkernel
+            [[ -z "${is_upkernel}" ]] && is_upkernel='y'
+            if [[ ${is_upkernel} == "y" || ${is_upkernel} == "Y" ]]; then
+                update_kernel
+            else
+                printnew -red "你选择不升级内核, 程序终止. "
+                exit 0
+            fi
+        else
+            if lsmod | grep nanqinlang >/dev/null 2>&1; then
+                printnew -green "系统内核已是最新版本. "
+            fi
+        fi
+    else
+        printnew -r -red "失败"
+        printnew -green "内核过旧, 升级内核... "
+        update_kernel
+    fi
+}
+#####################################################################################
+   
 if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" && "$(Check_OS)" != "redhat7" && "$(Check_OS)" != "redhat6" ]]; then
     printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
     exit 1
@@ -298,9 +370,9 @@ else
             read -p "请重新输入数字以选择:" mode
         done
         if [[ ${mode} -eq 3 ]]; then
-            if CHK_BBR >/dev/null 2>&1; then
+            if check_bbr >/dev/null 2>&1; then
                 printnew -green "删除魔改bbr模块中..."
-                UnInstall_BBR
+                uninstall_bbr
             else
                 printnew -red "检测到系统没有安装魔改bbr模块. "
             fi
@@ -308,7 +380,7 @@ else
         fi
         if [[ ${mode} -eq 2 ]]; then
             # 查看魔改bbr状态
-            CHK_BBR
+            check_bbr
             exit 0
         fi
     fi
@@ -316,77 +388,10 @@ else
     #检测系统架构
     chk_what
     #检测内核
-    CHK_ELREPO
-    printnew -a -green "检测系统内核... "
-    if ! command -v curl >/dev/null 2>&1; then
-        yum install -y curl >/dev/null 2>&1
-    fi
-    GET_INFO=$(echo N | yum --enablerepo=elrepo-kernel install kernel-ml)
-    echo ${GET_INFO} | egrep -io '/tmp/[[:graph:]]*[yumtx]' | xargs rm -f
-    KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}' | sort -Vu)
-    KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}')
-    function UP_KERNEL(){
-        if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1;then
-            printnew -green "为避免冲突, 正在删除旧版本的kernel-headers... "
-            rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
-        fi
-        #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
-        printnew -green "安装最新版本ml内核... "
-        if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
-            printnew -red "内核安装失败."
-            exit 1
-        else
-            printnew -green "内核安装成功."
-        fi
-        printnew -green "正在设置新内核的启动顺序... "
-        if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
-            grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
-            grub2-set-default 0 >/dev/null 2>&1
-        fi
-        if [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
-            #sed -i "s/^default.*/default=0/" /boot/grub/grub.conf
-            kernel_default=$(grep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | grep "${NET_KERNEL}" | grep -v debug | cut -d' ' -f1 | head -n 1)
-            sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
-        fi
-        if ! egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
-            echo "sh ${MY_SCRIPT} install">>~/.bashrc
-        fi
-        printnew -green "设置成功, 请重启系统后再次执行安装. "
-        read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
-        [[ -z "${is_reboot}" ]] && is_reboot='y'
-        if [[ ${is_reboot} == "y" || ${is_reboot} == "Y" ]]; then
-            reboot
-            exit 0
-        else
-            exit 0
-        fi
-    }
-    if version_gt ${KERNEL_NET} '4.10.0'; then
-        printnew -r -green "通过"
-    else
-        printnew -r -red "失败"
-        printnew -green "内核过旧, 升级内核... "
-        UP_KERNEL
-    fi
-    #判断是否有新的内核
-    if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
-        printnew -green "当前内核: ${KERNEL_VER}"
-        printnew -green "最新内核: ${KERNEL_NET} "
-        printnew -green "检测到有新的内核, 是否升级? "
-        read -p "输入[y/n]选择, 默认为y：" is_upkernel
-        [[ -z "${is_upkernel}" ]] && is_upkernel='y'
-        if [[ ${is_upkernel} == "y" || ${is_upkernel} == "Y" ]]; then
-            UP_KERNEL
-        else
-            printnew -red "你选择不升级内核, 程序终止. "
-            exit 0
-        fi
-    else
-        if lsmod | grep nanqinlang >/dev/null 2>&1; then
-            printnew -green "系统内核已是最新版本. "
-        fi
-    fi
-    if CHK_BBR >/dev/null 2>&1; then
+    check_elrepo
+    chk_kernel
+    
+    if check_bbr >/dev/null 2>&1; then
         printnew "\033[31m提示: \033[0m\033[32m检测到系统已安装魔改bbr模块. "
         exit 0
     else
@@ -435,7 +440,7 @@ else
             printnew -r -green "安装成功"
             printnew -a -green "优化并启用魔改方案... "
             OptNET >/dev/null 2>&1
-            if CHK_BBR >/dev/null 2>&1; then
+            if apply_bbr >/dev/null 2>&1; then
                 printnew -r -green "启动成功"
             else
                 printnew -r -red "启动失败"
