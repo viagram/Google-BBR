@@ -412,20 +412,12 @@ else
         mkdir make_tmp
     fi
     cd make_tmp
-    printnew -green "将安装[魔改bbr模块], 是否继续? "
-    read -p "输入[y/n]选择, 默认为y：" is_InstallBBR
-    [[ -z "${is_InstallBBR}" ]] && is_InstallBBR='y'
-    if [[ ${is_InstallBBR} == "y" || ${is_InstallBBR} == "Y" ]]; then
-        printnew -a -green "下载魔改bbr源码..."
-        if ! wget -O tcp_nanqinlang.c https://raw.githubusercontent.com/viagram/Google-BBR/master/tcp_nanqinlang.c --no-check-certificate >/dev/null 2>&1;then
-            printnew -r -red "下载失败"
-            exit 1
-        else
-            printnew -r -green "下载成功"
-        fi
+    printnew -a -green "下载魔改bbr源码..."
+    if ! wget -O tcp_nanqinlang.c https://raw.githubusercontent.com/viagram/Google-BBR/master/tcp_nanqinlang.c --no-check-certificate >/dev/null 2>&1;then
+        printnew -r -red "下载失败"
+         exit 1
     else
-        printnew -red "你选择不安装bbr, 程序终止. "
-        exit 0
+        printnew -r -green "下载成功"
     fi
     printnew -a -green "下载Makefile..."
     if ! wget -O Makefile https://raw.githubusercontent.com/viagram/Google-BBR/master/Makefile-CentOS --no-check-certificate >/dev/null 2>&1;then
