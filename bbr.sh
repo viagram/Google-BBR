@@ -443,6 +443,6 @@ else
     else
         printnew -r -red "编译失败"
     fi
-    cd make_tmp/.. >/dev/null 2>&1
+    cd .. >/dev/null 2>&1
     rm -rf make_tmp
 fi
