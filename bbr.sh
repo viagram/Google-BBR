@@ -408,10 +408,11 @@ else
     yum groupinstall -y "Development Tools"
     yum install -y libtool gcc gcc-c++ wget
     #下载并编译模块
-    if [[ ! -d make_tmp ]]; then
-        mkdir make_tmp
+    makedir=$(pwd)/make_tmp
+    if [[ ! -d ${makedir} ]]; then
+        mkdir ${makedir}
     fi
-    cd make_tmp
+    cd ${makedir}
     printnew -a -green "下载魔改bbr源码..."
     if ! wget -O tcp_nanqinlang.c https://raw.githubusercontent.com/viagram/Google-BBR/master/tcp_nanqinlang.c --no-check-certificate >/dev/null 2>&1;then
         printnew -r -red "下载失败"
@@ -443,6 +444,6 @@ else
     else
         printnew -r -red "编译失败"
     fi
-    cd make_tmp/.. >/dev/null 2>&1
-    rm -rf make_tmp
+    cd ${makedir}/.. >/dev/null 2>&1
+    rm -rf ${makedir}
 fi
