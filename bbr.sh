@@ -39,22 +39,22 @@ function printnew(){
         CHK="${PARSTR}"
         if echo "${CHK}" | egrep -io "^\-[[:graph:]]*" >/dev/null 2>&1; then
             case "${CHK}" in
-                -black) COLOUR="\033[30m";;
-                -red) COLOUR="\033[31m";;
-                -green) COLOUR="\033[32m";;
-                -yellow) COLOUR="\033[33m";;
-                -blue) COLOUR="\033[34m";;
-                -purple) COLOUR="\033[35m";;
-                -cyan) COLOUR="\033[36m";;
-                -white) COLOUR="\033[37m";;
-                -a) HUANHANG=1 ;;
-                *) COLOUR="\033[37m";;
+                -black) COLOUR="\033[30m";
+                -red) COLOUR="\033[41;37m";
+                -green) COLOUR="\033[32m";
+                -yellow) COLOUR="\033[33m";
+                -blue) COLOUR="\033[34m";
+                -purple) COLOUR="\033[35m";
+                -cyan) COLOUR="\033[36m";
+                -white) COLOUR="\033[37m";
+                -a) HUANHANG=1 ;
+                *) COLOUR="\033[37m";
             esac
         else
             WENZHI+="${PARSTR}"
         fi
     done
-    if [[ ${HUANHANG} -eq 1 ]];then
+    if [[ ${HUANHANG} -eq 1 ]]; then
         printf "${COLOUR}%b%s \033[0m" "${WENZHI}"
     else
         printf "${COLOUR}%b%s\033[0m\n" "${WENZHI}"
@@ -80,20 +80,20 @@ function chk_what(){
 }
 
 function Check_OS(){
-    if [[ -f /etc/redhat-release ]];then
-        if egrep -i "centos.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
+    if [[ -f /etc/redhat-release ]]; then
+        if egrep -i "centos.*6\..*" /etc/redhat-release >/dev/null 2>&1; then
             echo 'centos6'
-        elif egrep -i "centos.*7\..*" /etc/redhat-release >/dev/null 2>&1;then
+        elif egrep -i "centos.*7\..*" /etc/redhat-release >/dev/null 2>&1; then
             echo 'centos7'
-        elif egrep -i "Red.*Hat.*6\..*" /etc/redhat-release >/dev/null 2>&1;then
+        elif egrep -i "Red.*Hat.*6\..*" /etc/redhat-release >/dev/null 2>&1; then
             echo 'redhat6'
-        elif egrep -i "Red.*Hat.*7\..*" /etc/redhat-release >/dev/null 2>&1;then
+        elif egrep -i "Red.*Hat.*7\..*" /etc/redhat-release >/dev/null 2>&1; then
             echo 'redhat7'
         fi
-    elif [[ -f /etc/issue ]];then
-        if egrep -i "debian" /etc/issue >/dev/null 2>&1;then
+    elif [[ -f /etc/issue ]]; then
+        if egrep -i "debian" /etc/issue >/dev/null 2>&1; then
             echo 'debian'
-        elif egrep -i "ubuntu" /etc/issue >/dev/null 2>&1;then
+        elif egrep -i "ubuntu" /etc/issue >/dev/null 2>&1; then
             echo 'ubuntu'
         fi
     else
@@ -145,7 +145,7 @@ function OptNET(){
 
 function check_elrepo(){
     printnew -a -green "检查elrepo安装源... "
-    if ! yum list installed elrepo-release >/dev/null 2>&1;then
+    if ! yum list installed elrepo-release >/dev/null 2>&1; then
         printnew -r -red "失败"
         printnew -a -green "导入elrepo密钥... "
         if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
@@ -246,7 +246,7 @@ function uninstall_bbr(){
 }
 
 function update_kernel(){
-    if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1;then
+    if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1; then
         printnew -green "为避免冲突, 正在删除旧版本的kernel-headers... "
         rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
     fi
@@ -374,13 +374,13 @@ else
     chk_kernel
     
     if check_bbr >/dev/null 2>&1; then
-        printnew "\033[31m提示: \033[0m\033[32m检测到系统已安装魔改bbr模块. "
+        printnew "\033[41;37m提示: \033[0m\033[32m检测到系统已安装魔改bbr模块. "
         exit 0
     else
         printnew -green "进行[魔改bbr模块]安装进程..."
     fi
     #更新启动配置并删除其它内核
-    if rpm -qa | grep kernel | grep -v "${KERNEL_VER}" >/dev/null 2>&1;then
+    if rpm -qa | grep kernel | grep -v "${KERNEL_VER}" >/dev/null 2>&1; then
         printnew -green "删除其它老旧内核... "
         rpm -qa | grep kernel | grep -v "${KERNEL_VER}" | xargs yum remove -y
     fi
@@ -396,14 +396,14 @@ else
     fi
     cd ${makedir}
     printnew -a -green "下载魔改bbr源码..."
-    if ! wget -O tcp_nanqinlang.c https://raw.githubusercontent.com/viagram/Google-BBR/master/tcp_nanqinlang.c --no-check-certificate >/dev/null 2>&1;then
+    if ! wget -O tcp_nanqinlang.c https://raw.githubusercontent.com/viagram/Google-BBR/master/tcp_nanqinlang.c --no-check-certificate >/dev/null 2>&1; then
         printnew -r -red "下载失败"
          exit 1
     else
         printnew -r -green "下载成功"
     fi
     printnew -a -green "下载Makefile..."
-    if ! wget -O Makefile https://raw.githubusercontent.com/viagram/Google-BBR/master/Makefile-CentOS --no-check-certificate >/dev/null 2>&1;then
+    if ! wget -O Makefile https://raw.githubusercontent.com/viagram/Google-BBR/master/Makefile-CentOS --no-check-certificate >/dev/null 2>&1; then
         printnew -r -red "下载失败" 
         exit 1
     else
