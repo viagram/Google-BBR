@@ -222,6 +222,14 @@ function apply_bbr(){
     fi
 }
 
+function google_bbr(){
+    sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
+    echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
+    sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
+    echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+    sysctl -p >/dev/null 2>&1
+}
+
 function uninstall_bbr(){
     if check_bbr >/dev/null 2>&1; then
         sed -i '/net\.core\.default_qdisc=/d'          /etc/sysctl.conf
@@ -421,10 +429,14 @@ else
                 printnew -r -red "启动失败"
             fi
         else
-            printnew -r -red "安装失败"
+            printnew -r -red "安装失败."
+            printnew -r -green "将开启Google BBR."
+            google_bbr
         fi
     else
-        printnew -r -red "编译失败"
+        printnew -r -red "编译失败."
+        printnew -r -green "将开启Google BBR."
+        google_bbr
     fi
     cd ${makedir}/.. >/dev/null 2>&1
     rm -rf ${makedir}
