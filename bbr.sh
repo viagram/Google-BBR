@@ -342,11 +342,6 @@ else
             printnew -red "用户取消, 程序终止."
             exit 0
         fi
-        #删除二次登陆启动项
-        if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
-            MY_SCRIPT2=${MY_SCRIPT//\//\\/}
-            sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
-        fi
     else
         printnew -green "请输入数字进行选择."
         printnew -green "   1, 安装魔改bbr模块"
@@ -381,6 +376,12 @@ else
     check_elrepo
     chk_kernel
     
+    #删除二次登陆启动项
+    if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
+        MY_SCRIPT2=${MY_SCRIPT//\//\\/}
+        sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
+    fi
+
     if check_bbr >/dev/null 2>&1; then
         printnew "\033[41;37m提示: \033[0m\033[32m检测到系统已安装魔改bbr模块. "
         exit 0
