@@ -62,7 +62,7 @@ function printnew(){
 }
 
 function chk_what(){
-    printnew -a -green "检测系统架构... "
+    printnew -a -green "检测系统架构: "
     if ! command -v virt-what >/dev/null 2>&1; then
         yum install -y virt-what >/dev/null 2>&1
     fi
@@ -105,7 +105,7 @@ function OptNET(){
     # 以前优化设置来自于网络, 具体用处嘛~~~我也不知道^_^.
     sysctl=/etc/sysctl.conf
     limits=/etc/security/limits.conf
-        sed -i '/* soft nofile/d' $limits;echo '* soft nofile 512000'>>$limits
+    sed -i '/* soft nofile/d' $limits;echo '* soft nofile 512000'>>$limits
     sed -i '/* hard nofile/d' $limits;echo '* hard nofile 1024000'>>$limits
     ulimit -n 512000
     sed -i '/net.ipv4.ip_forward/d' $sysctl;echo 'net.ipv4.ip_forward=0'>>$sysctl
@@ -141,13 +141,14 @@ function OptNET(){
     sed -i '/net.ipv4.tcp_wmem/d' $sysctl;echo 'net.ipv4.tcp_wmem=4096'>>$sysctl
     sed -i '/net.ipv4.tcp_mtu_probing/d' $sysctl;echo 'net.ipv4.tcp_mtu_probing=1'>>$sysctl
     sysctl -p
+    sleep 1
 }
 
 function check_elrepo(){
-    printnew -a -green "检查elrepo安装源... "
+    printnew -a -green "检查elrepo安装源: "
     if ! yum list installed elrepo-release >/dev/null 2>&1; then
         printnew -r -red "失败"
-        printnew -a -green "导入elrepo密钥... "
+        printnew -a -green "导入elrepo密钥: "
         if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
         #if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
             printnew -r -red "失败"
@@ -155,7 +156,7 @@ function check_elrepo(){
         else
             printnew -r -green "成功"
         fi
-        printnew -a -green "安装elrepo-releases... "
+        printnew -a -green "安装elrepo-releases: "
         if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
             if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
             #if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
@@ -181,53 +182,33 @@ function check_elrepo(){
 }
 
 function check_bbr(){
-    BBR_KO="/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko"
-    if lsmod | grep nanqinlang >/dev/null 2>&1; then
-        printnew -green "魔改bbr模块tcp_nanqinlang运行中. "
+    if lsmod | grep tcp_bbr >/dev/null 2>&1; then
+        printnew -green "谷歌bbr模块运行中. "
         return 0
     else
-        if [[ -e "${BBR_KO}" ]]; then
-            printnew -red "魔改bbr模块没有运行. "
-            return 1
-        else
-            printnew -red "魔改bbr模块没有安装. "
-            return 2
-        fi
-    fi
-}
-
-function apply_bbr(){
-    if [[ check_bbr -eq 0 ]]; then
-        printnew -green "魔改bbr模块运行中. "
-        return 0
-    elif [[ check_bbr -eq 1 ]]; then
-        sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
-        echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-        sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
-        echo "net.ipv4.tcp_congestion_control=nanqinlang" >> /etc/sysctl.conf
-        sysctl -p >/dev/null 2>&1
-        #BBR_KO="/lib/modules/$(uname -r)/kernel/net/ipv4/tcp_nanqinlang.ko"
-        insmod ${BBR_KO}
-        depmod -a
-        if check_bbr; then
-            printnew -green "魔改bbr模块启动成功. "
-            return 0
-        else
-            printnew -red "魔改bbr模块启动失败."
-            return 1
-        fi
-    elif [[ check_bbr -eq 2 ]]; then
-        printnew -red "魔改bbr模块没有安装. "
+        printnew -red "谷歌bbr模块没有运行. "
         return 1
     fi
 }
 
-function google_bbr(){
-    sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
-    echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-    sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
-    echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-    sysctl -p >/dev/null 2>&1
+function apply_bbr(){
+    if check_bbr; then
+        printnew -green "谷歌bbr模块运行中. "
+        return 0
+    else
+        sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
+        echo 'net.core.default_qdisc=fq' >> /etc/sysctl.conf
+        sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
+        echo 'net.ipv4.tcp_congestion_control=bbr' >> /etc/sysctl.conf
+        sysctl -p >/dev/null 2>&1
+        if check_bbr; then
+            printnew -green "谷歌bbr模块启动成功. "
+            return 0
+        else
+            printnew -red "谷歌bbr模块启动失败."
+            return 1
+        fi
+    fi
 }
 
 function uninstall_bbr(){
@@ -235,38 +216,38 @@ function uninstall_bbr(){
         sed -i '/net\.core\.default_qdisc=/d'          /etc/sysctl.conf
         sed -i '/net\.ipv4\.tcp_congestion_control=/d' /etc/sysctl.conf
         sysctl -p >/dev/null 2>&1
-        rm /lib/modules/`uname -r`/kernel/net/ipv4/tcp_nanqinlang.ko >/dev/null 2>&1
-        printnew -green "删除成功, 请重启系统以停止魔改bbr模块."
+        sleep 1
+        printnew -green "删除成功, 请重启系统以停止谷歌bbr模块."
         read -p "输入[y/n]以选择是否重启系统. 默认为y: " yn_reboot
         [[ -z "${yn_reboot}" ]] && yn_reboot=y
         while [[ ! "${yn_reboot}" =~ ^[YyNn]$ ]]; do
             printnew -red "无效输入."
-            read -p "请重新输入:" yn_reboot
+            read -p "请重新输入: " yn_reboot
         done
         if [[ ${yn_reboot} == "y" || ${yn_reboot} == "Y" ]]; then
-            printnew -green "重启系统中..."
+            printnew -green "重启系统中: "
             sleep 1
             reboot
         fi
     else
-        printnew -red "检测到系统没有安装魔改bbr模块. "
+        printnew -red "检测到系统没有安装谷歌bbr模块. "
     fi
 }
 
 function update_kernel(){
     if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1; then
-        printnew -green "为避免冲突, 正在删除旧版本的kernel-headers... "
+        printnew -green "为避免冲突, 正在删除旧版本的kernel-headers: "
         rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
     fi
     #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
-    printnew -green "安装最新版本ml内核... "
+    printnew -green "安装最新版本ml内核: "
     if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
         printnew -red "内核安装失败."
         exit 1
     else
         printnew -green "内核安装成功."
     fi
-    printnew -green "正在设置新内核的启动顺序... "
+    printnew -green "正在设置新内核的启动顺序: "
     if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
         grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
         grub2-set-default 0 >/dev/null 2>&1
@@ -291,7 +272,7 @@ function update_kernel(){
 }
 
 function chk_kernel(){
-    printnew -a -green "检测系统内核... "
+    printnew -a -green "检测系统内核: "
     if ! command -v curl >/dev/null 2>&1; then
         yum install -y curl >/dev/null 2>&1
     fi
@@ -322,7 +303,7 @@ function chk_kernel(){
         fi
     else
         printnew -r -red "失败"
-        printnew -green "内核过旧, 升级内核... "
+        printnew -green "内核过旧, 升级内核: "
         update_kernel
     fi
 }
@@ -335,7 +316,7 @@ else
     typeset -l REINSTALL
     REINSTALL="${1}"
     if [[ -n "${REINSTALL}" && "${REINSTALL}" == "install" ]]; then
-        printnew -green "将进行魔改bbr模块二次安装进程."
+        printnew -green "将进行谷歌bbr模块二次安装进程."
         read -p "输入[y/n]选择是否继续, 默认为y：" is_go
         [[ -z "${is_go}" ]] && is_go='y'
         if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
@@ -344,27 +325,27 @@ else
         fi
     else
         printnew -green "请输入数字进行选择."
-        printnew -green "   1, 安装魔改bbr模块"
-        printnew -green "   2, 查看魔改bbr状态"
-        printnew -green "   3, 删除魔改bbr模块"
+        printnew -green "   1, 安装谷歌bbr模块"
+        printnew -green "   2, 查看谷歌bbr状态"
+        printnew -green "   3, 删除谷歌bbr模块"
         read -p "输入[1/2/3]以选择相应模式. 默认为1: " mode
         [[ -z "${mode}" ]] && mode=1
         #while [[ ! "${forceinstall}" =~ ^[YyNn]$ ]]; do
         while [[ ! "${mode}" =~ ^[1-3]$ ]]; do
             printnew -red "无效输入."
-            read -p "请重新输入数字以选择:" mode
+            read -p "请重新输入数字以选择: " mode
         done
         if [[ ${mode} -eq 3 ]]; then
             if check_bbr >/dev/null 2>&1; then
-                printnew -green "删除魔改bbr模块中..."
+                printnew -green "删除谷歌bbr模块中: "
                 uninstall_bbr
             else
-                printnew -red "检测到系统没有安装魔改bbr模块. "
+                printnew -red "检测到系统没有安装谷歌bbr模块. "
             fi
             exit 0
         fi
         if [[ ${mode} -eq 2 ]]; then
-            # 查看魔改bbr状态
+            # 查看谷歌bbr状态
             check_bbr
             exit 0
         fi
@@ -383,62 +364,25 @@ else
     fi
 
     if check_bbr >/dev/null 2>&1; then
-        printnew "\033[41;37m提示: \033[0m\033[32m检测到系统已安装魔改bbr模块. "
+        printnew "\033[41;37m提示: \033[0m\033[32m检测到谷歌bbr模块已在运行中. "
         exit 0
     else
-        printnew -green "进行[魔改bbr模块]安装进程..."
+        printnew -green "进行[谷歌bbr模块]安装进程: "
     fi
     #更新启动配置并删除其它内核
     if rpm -qa | grep kernel | grep -v "${KERNEL_VER}" >/dev/null 2>&1; then
-        printnew -green "删除其它老旧内核... "
+        printnew -green "删除其它老旧内核: "
         rpm -qa | grep kernel | grep -v "${KERNEL_VER}" | xargs yum remove -y
+        cd /lib/modules/
+        ls | grep -v $(uname -r) | xargs rm -rf
+        cd - >/dev/null 2>&1
     fi
     
-    #安装必备组件
-    printnew -green "安装必备组件包... "
-    yum groupinstall -y "Development Tools"
-    yum install -y libtool gcc gcc-c++ wget
-    #下载并编译模块
-    makedir=$(pwd)/make_tmp
-    if [[ ! -d ${makedir} ]]; then
-        mkdir ${makedir}
-    fi
-    cd ${makedir}
-    printnew -a -green "下载魔改bbr源码..."
-    if ! wget -O tcp_nanqinlang.c https://raw.githubusercontent.com/viagram/Google-BBR/master/tcp_nanqinlang.c --no-check-certificate >/dev/null 2>&1; then
-        printnew -r -red "下载失败"
-         exit 1
+    printnew -a -green "优化并启用谷歌bbr: "
+    OptNET >/dev/null 2>&1
+    if apply_bbr >/dev/null 2>&1; then
+        printnew -r -green "启动成功"
     else
-        printnew -r -green "下载成功"
+        printnew -r -red "启动失败"
     fi
-    printnew -a -green "下载Makefile..."
-    if ! wget -O Makefile https://raw.githubusercontent.com/viagram/Google-BBR/master/Makefile-CentOS --no-check-certificate >/dev/null 2>&1; then
-        printnew -r -red "下载失败" 
-        exit 1
-    else
-        printnew -r -green "下载成功"
-    fi
-    printnew -a -green "编译并安装魔改方案... "
-    if make >/dev/null 2>&1; then
-        if make install >/dev/null 2>&1; then
-            printnew -r -green "安装成功"
-            printnew -a -green "优化并启用魔改方案... "
-            OptNET >/dev/null 2>&1
-            if apply_bbr >/dev/null 2>&1; then
-                printnew -r -green "启动成功"
-            else
-                printnew -r -red "启动失败"
-            fi
-        else
-            printnew -r -red "安装失败."
-            printnew -r -green "将开启Google BBR."
-            google_bbr
-        fi
-    else
-        printnew -r -red "编译失败."
-        printnew -r -green "将开启Google BBR."
-        google_bbr
-    fi
-    cd ${makedir}/.. >/dev/null 2>&1
-    rm -rf ${makedir}
 fi
