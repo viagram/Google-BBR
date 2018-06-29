@@ -81,13 +81,17 @@ function chk_what(){
 
 function Check_OS(){
     if [[ -f /etc/redhat-release ]]; then
-        if egrep -i "centos.*6\..*" /etc/redhat-release >/dev/null 2>&1; then
+        if egrep -io "centos[a-z ]*5\." /etc/redhat-release >/dev/null 2>&1; then
+            echo 'centos5'
+        elif egrep -io "centos[a-z ]*6\." /etc/redhat-release >/dev/null 2>&1; then
             echo 'centos6'
-        elif egrep -i "centos.*7\..*" /etc/redhat-release >/dev/null 2>&1; then
+        elif egrep -io "centos[a-z ]*7\." /etc/redhat-release >/dev/null 2>&1; then
             echo 'centos7'
-        elif egrep -i "Red.*Hat.*6\..*" /etc/redhat-release >/dev/null 2>&1; then
+        elif egrep -io "red[a-z ]*hat[a-z ]*5\." /etc/redhat-release >/dev/null 2>&1; then
+            echo 'redhat5'
+        elif egrep -io "red[a-z ]*hat[a-z ]*6\." /etc/redhat-release >/dev/null 2>&1; then
             echo 'redhat6'
-        elif egrep -i "Red.*Hat.*7\..*" /etc/redhat-release >/dev/null 2>&1; then
+        elif egrep -io "red[a-z ]*hat[a-z ]*7\." /etc/redhat-release >/dev/null 2>&1; then
             echo 'redhat7'
         fi
     elif [[ -f /etc/issue ]]; then
@@ -183,17 +187,17 @@ function check_elrepo(){
 
 function check_bbr(){
     if lsmod | grep tcp_bbr >/dev/null 2>&1; then
-        printnew -green "谷歌bbr模块运行中. "
+        printnew -green " [Google BBR] 模块运行中. "
         return 0
     else
-        printnew -red "谷歌bbr模块没有运行. "
+        printnew -red " [Google BBR] 模块没有运行. "
         return 1
     fi
 }
 
 function apply_bbr(){
     if check_bbr; then
-        printnew -green "谷歌bbr模块运行中. "
+        printnew -green " [Google BBR] 模块运行中. "
         return 0
     else
         sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
@@ -202,10 +206,10 @@ function apply_bbr(){
         echo 'net.ipv4.tcp_congestion_control=bbr' >> /etc/sysctl.conf
         sysctl -p >/dev/null 2>&1
         if check_bbr; then
-            printnew -green "谷歌bbr模块启动成功. "
+            printnew -green " [Google BBR] 模块启动成功. "
             return 0
         else
-            printnew -red "谷歌bbr模块启动失败."
+            printnew -red " [Google BBR] 模块启动失败."
             return 1
         fi
     fi
@@ -217,7 +221,7 @@ function uninstall_bbr(){
         sed -i '/net\.ipv4\.tcp_congestion_control=/d' /etc/sysctl.conf
         sysctl -p >/dev/null 2>&1
         sleep 1
-        printnew -green "删除成功, 请重启系统以停止谷歌bbr模块."
+        printnew -green "删除成功, 请重启系统以停止 [Google BBR] 模块."
         read -p "输入[y/n]以选择是否重启系统. 默认为y: " yn_reboot
         [[ -z "${yn_reboot}" ]] && yn_reboot=y
         while [[ ! "${yn_reboot}" =~ ^[YyNn]$ ]]; do
@@ -230,7 +234,7 @@ function uninstall_bbr(){
             reboot
         fi
     else
-        printnew -red "检测到系统没有安装谷歌bbr模块. "
+        printnew -red "检测到系统没有安装 [Google BBR] 模块. "
     fi
 }
 
@@ -316,7 +320,7 @@ else
     typeset -l REINSTALL
     REINSTALL="${1}"
     if [[ -n "${REINSTALL}" && "${REINSTALL}" == "install" ]]; then
-        printnew -green "将进行谷歌bbr模块二次安装进程."
+        printnew -green "将进行 [Google BBR] 模块二次安装进程."
         read -p "输入[y/n]选择是否继续, 默认为y：" is_go
         [[ -z "${is_go}" ]] && is_go='y'
         if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
@@ -325,9 +329,9 @@ else
         fi
     else
         printnew -green "请输入数字进行选择."
-        printnew -green "   1, 安装谷歌bbr模块"
-        printnew -green "   2, 查看谷歌bbr状态"
-        printnew -green "   3, 删除谷歌bbr模块"
+        printnew -green "   1, 安装 [Google BBR] 模块"
+        printnew -green "   2, 查看 [Google BBR] 状态"
+        printnew -green "   3, 删除 [Google BBR] 模块"
         read -p "输入[1/2/3]以选择相应模式. 默认为1: " mode
         [[ -z "${mode}" ]] && mode=1
         #while [[ ! "${forceinstall}" =~ ^[YyNn]$ ]]; do
@@ -337,15 +341,15 @@ else
         done
         if [[ ${mode} -eq 3 ]]; then
             if check_bbr >/dev/null 2>&1; then
-                printnew -green "删除谷歌bbr模块中: "
+                printnew -green "删除 [Google BBR] 模块中: "
                 uninstall_bbr
             else
-                printnew -red "检测到系统没有安装谷歌bbr模块. "
+                printnew -red "检测到系统没有安装 [Google BBR] 模块. "
             fi
             exit 0
         fi
         if [[ ${mode} -eq 2 ]]; then
-            # 查看谷歌bbr状态
+            # 查看 [Google BBR] 状态
             check_bbr
             exit 0
         fi
@@ -364,10 +368,10 @@ else
     fi
 
     if check_bbr >/dev/null 2>&1; then
-        printnew "\033[41;37m提示: \033[0m\033[32m检测到谷歌bbr模块已在运行中. "
+        printnew "\033[41;37m提示: \033[0m\033[32m检测到 [Google BBR] 模块已在运行中. "
         exit 0
     else
-        printnew -green "进行[谷歌bbr模块]安装进程: "
+        printnew -green "进行[ [Google BBR] 模块]安装进程: "
     fi
     #更新启动配置并删除其它内核
     if rpm -qa | grep kernel | grep -v "${KERNEL_VER}" >/dev/null 2>&1; then
@@ -378,7 +382,7 @@ else
         cd - >/dev/null 2>&1
     fi
     
-    printnew -a -green "优化并启用谷歌bbr: "
+    printnew -a -green "优化并启用 [Google BBR] : "
     OptNET >/dev/null 2>&1
     if apply_bbr >/dev/null 2>&1; then
         printnew -r -green "启动成功"
