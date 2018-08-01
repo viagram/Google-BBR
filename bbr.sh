@@ -280,9 +280,7 @@ function chk_kernel(){
     if ! command -v curl >/dev/null 2>&1; then
         yum install -y curl >/dev/null 2>&1
     fi
-    GET_INFO=$(echo N | yum --enablerepo=elrepo-kernel install kernel-ml)
-    echo ${GET_INFO} | egrep -io '/tmp/[[:graph:]]*[yumtx]' | xargs rm -f
-    KERNEL_NET=$(echo ${GET_INFO} | egrep -io '[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}' | sort -Vu)
+    KERNEL_NET=$(yum --enablerepo=elrepo-kernel list kernel-ml | egrep -io '[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}' | sort -Vur | head -n1)
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}')
 
     if version_gt ${KERNEL_NET} '4.10.0'; then
