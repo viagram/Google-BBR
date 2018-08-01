@@ -364,13 +364,7 @@ else
         MY_SCRIPT2=${MY_SCRIPT//\//\\/}
         sed -i "/${MY_SCRIPT2}/d" ~/.bashrc
     fi
-
-    if check_bbr >/dev/null 2>&1; then
-        printnew "\033[41;37m提示: \033[0m\033[32m检测到 [Google BBR] 模块已在运行中. "
-        exit 0
-    else
-        printnew -green "进行[ [Google BBR] 模块]安装进程: "
-    fi
+    
     #更新启动配置并删除其它内核
     if rpm -qa | grep kernel | grep -v "${KERNEL_VER}" >/dev/null 2>&1; then
         printnew -green "删除其它老旧内核: "
@@ -378,6 +372,13 @@ else
         cd /lib/modules/
         ls | grep -v $(uname -r) | xargs rm -rf
         cd - >/dev/null 2>&1
+    fi
+
+    if check_bbr >/dev/null 2>&1; then
+        printnew "\033[41;37m提示: \033[0m\033[32m检测到 [Google BBR] 模块已在运行中. "
+        exit 0
+    else
+        printnew -green "进行[ [Google BBR] 模块]安装进程: "
     fi
     
     printnew -a -green "优化并启用 [Google BBR] : "
