@@ -231,22 +231,27 @@ function update_kernel(){
     fi
     #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
     if [[ "$(Check_OS)" == "centos6" ]]; then
-        printnew -green -a "安装4.12.10版本内核: "
-        if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-4.12.10-1.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
+		kernel_upver='4.18.20-1'
+		if version_ge "$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')" "${kernel_upver}"; then
+			printnew -green "暂无可升级的新版本内核."
+			return
+		fi
+        printnew -green -a "安装${kernel_upver}版本内核: "
+        if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-${kernel_upver}.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
             printnew -red "失败"
             exit 1
         else
             printnew -green "成功"
         fi
-        printnew -green -a  "安装4.12.10版本devel: "
-        if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-devel-4.12.10-1.el6.elrepo.x86_64.rpm>/dev/null 2>&1; then
+        printnew -green -a  "安装${kernel_upver}版本devel: "
+        if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-devel-${kernel_upver}.el6.elrepo.x86_64.rpm>/dev/null 2>&1; then
             printnew -red "失败"
             exit 1
         else
             printnew -green "成功"
         fi
-        printnew -green -a "安装4.12.10版本headers: "
-        if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-headers-4.12.10-1.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
+        printnew -green -a "安装${kernel_upver}版本headers: "
+        if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-headers-${kernel_upver}.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
             printnew -red "失败"
             exit 1
         else
