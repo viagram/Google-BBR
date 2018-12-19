@@ -231,11 +231,11 @@ function update_kernel(){
     fi
     #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
     if [[ "$(Check_OS)" == "centos6" ]]; then
-		kernel_upver='4.18.20-1'
-		if version_ge "$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')" "${kernel_upver}"; then
-			printnew -green "暂无可升级的新版本内核."
-			return
-		fi
+        kernel_upver='4.18.20-1'
+        if version_ge "$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')" "${kernel_upver}"; then
+            printnew -green "暂无可升级的新版本内核."
+            return
+        fi
         printnew -green -a "安装${kernel_upver}版本内核: "
         if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-${kernel_upver}.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
             printnew -red "失败"
@@ -324,9 +324,10 @@ function chk_kernel(){
             fi
         fi
     else
+        printnew -green "失败"
         if version_lt ${KERNEL_NET} '4.9.0'; then
             if [[ "$(Check_OS)" == "centos6" ]]; then
-                printnew -green "内核过旧, 升级内核."
+                printnew -green "尝试升级内核."
                 update_kernel
             else
                 printnew -red "暂无支持Google BBR的内核版本."
