@@ -230,13 +230,14 @@ function update_kernel(){
         rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
     fi
     #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
-    printnew -green "安装最新版本ml内核: "
-	if [[ "$(Check_OS)" == "centos6" ]]; then
-		new-kernel="kernel-lt kernel-lt-devel kernel-lt-headers"
-	elif [[ "$(Check_OS)" == "centos7" ]]; then
-		new-kernel="kernel-ml kernel-ml-devel kernel-ml-headers"
-	fi
-    if ! yum --enablerepo=elrepo-kernel -y install "${new-kernel}"; then
+    if [[ "$(Check_OS)" == "centos6" ]]; then
+        printnew -green "安装最新版本lt内核: "
+        kernel-bs=lt
+    elif [[ "$(Check_OS)" == "centos7" ]]; then
+        printnew -green "安装最新版本ml内核: "
+        kernel-bs=mt
+    fi
+    if ! yum --enablerepo=elrepo-kernel -y install kernel-${kernel-bs} kernel-${kernel-bs}-devel kernel-${kernel-bs}-headers; then
         printnew -red "内核安装失败."
         exit 1
     else
