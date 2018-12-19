@@ -272,7 +272,12 @@ function chk_kernel(){
     if ! command -v curl >/dev/null 2>&1; then
         yum install -y curl >/dev/null 2>&1
     fi
-    KERNEL_NET=$(yum --enablerepo=elrepo-kernel list kernel-ml | egrep -io '[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}' | sort -Vur | head -n1)
+	if [[ "$(Check_OS)" == "centos6" ]]; then
+        kernel_bs="lt"
+    elif [[ "$(Check_OS)" == "centos7" ]]; then
+        kernel_bs="mt"
+    fi
+    KERNEL_NET=$(yum --enablerepo=elrepo-kernel list kernel-${kernel_bs} | egrep -io '[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}' | sort -Vur | head -n1)
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}')
 
     if version_gt ${KERNEL_NET} '4.10.0'; then
