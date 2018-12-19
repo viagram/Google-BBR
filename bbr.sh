@@ -231,21 +231,21 @@ function update_kernel(){
     fi
     #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
     if [[ "$(Check_OS)" == "centos6" ]]; then
-        printnew -green "安装4.12.10版本内核: "
+        printnew -green -a "安装4.12.10版本内核: "
         if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-4.12.10-1.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
             printnew -red "失败"
             exit 1
         else
             printnew -green "成功"
         fi
-        printnew -green "安装4.12.10版本devel: "
+        printnew -green -a  "安装4.12.10版本devel: "
         if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-devel-4.12.10-1.el6.elrepo.x86_64.rpm>/dev/null 2>&1; then
             printnew -red "失败"
             exit 1
         else
             printnew -green "成功"
         fi
-        printnew -green "安装4.12.10版本headers: "
+        printnew -green -a "安装4.12.10版本headers: "
         if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-headers-4.12.10-1.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
             printnew -red "失败"
             exit 1
@@ -254,12 +254,12 @@ function update_kernel(){
         fi
     elif [[ "$(Check_OS)" == "centos7" ]]; then
         printnew -green "安装最新版本ml内核: "
-		if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
-			printnew -red "内核安装失败."
-			exit 1
-		else
-			printnew -green "内核安装成功."
-		fi
+        if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
+            printnew -red "内核安装失败."
+            exit 1
+        else
+            printnew -green "内核安装成功."
+        fi
     fi
     printnew -green "正在设置新内核的启动顺序: "
     if [[ "$(Check_OS)" == "centos7" ]]; then
@@ -290,7 +290,7 @@ function chk_kernel(){
     if ! command -v curl >/dev/null 2>&1; then
         yum install -y curl >/dev/null 2>&1
     fi
-	if [[ "$(Check_OS)" == "centos6" ]]; then
+    if [[ "$(Check_OS)" == "centos6" ]]; then
         kernel_bs="lt"
     elif [[ "$(Check_OS)" == "centos7" ]]; then
         kernel_bs="ml"
@@ -298,7 +298,7 @@ function chk_kernel(){
     KERNEL_NET=$(yum --enablerepo=elrepo-kernel list kernel-${kernel_bs} | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')
 
-	if version_gt ${KERNEL_NET} '4.9.0'; then
+    if version_gt ${KERNEL_NET} '4.9.0'; then
         printnew -red "通过"
         #判断是否有新的内核
         if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
@@ -319,13 +319,18 @@ function chk_kernel(){
             fi
         fi
     else
-		if version_lt ${KERNEL_NET} '4.9.0'; then
-			printnew -red "暂无支持Google BBR的内核版本."
-			exit 1
-		else
-			printnew -green "内核过旧, 升级内核."
-			update_kernel
-		fi
+        if version_lt ${KERNEL_NET} '4.9.0'; then
+            if [[ "$(Check_OS)" == "centos6" ]]; then
+                printnew -green "内核过旧, 升级内核."
+                update_kernel
+            else
+                printnew -red "暂无支持Google BBR的内核版本."
+                exit 1
+            fi
+        else
+            printnew -green "内核过旧, 升级内核."
+            update_kernel
+        fi
     fi
 }
 #####################################################################################
