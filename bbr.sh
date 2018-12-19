@@ -19,16 +19,6 @@ cat <<'EOF'
 ###################################################################
 EOF
 echo -e "\033[0m"
-# Check If You Are Root
-if [[ $EUID -ne 0 ]]; then
-    printnewed "错误: 必须以root权限运行此脚本! "
-    exit 1
-fi
- 
-function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1";} #大于
-function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1";} #大于或等于
-function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1";} #小于
-function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1";} #小于或等于
 
 function printnew(){
     typeset -l CHK
@@ -61,6 +51,17 @@ function printnew(){
     fi
 }
 
+# Check If You Are Root
+if [[ $EUID -ne 0 ]]; then
+    printnew -red "错误: 必须以root权限运行此脚本! "
+    exit 1
+fi
+ 
+function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1";} #大于
+function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1";} #大于或等于
+function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1";} #小于
+function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1";} #小于或等于
+
 function chk_what(){
     printnew -a -green "检测系统架构: "
     if ! command -v virt-what >/dev/null 2>&1; then
@@ -71,7 +72,7 @@ function chk_what(){
         exit 1
     else
         if [[ "$(uname -m)" != "x86_64" ]]; then
-            printnewed "目前仅支持x86_64架构."
+            printnew -red "目前仅支持x86_64架构."
             exit 1
         else
             printnew -green "通过"
@@ -175,7 +176,7 @@ function check_bbr(){
         printnew -green " [Google BBR] 模块运行中. "
         return 0
     else
-        printnewed " [Google BBR] 模块没有运行. "
+        printnew -red " [Google BBR] 模块没有运行. "
         return 1
     fi
 }
@@ -194,7 +195,7 @@ function apply_bbr(){
             printnew -green " [Google BBR] 模块启动成功. "
             return 0
         else
-            printnewed " [Google BBR] 模块启动失败."
+            printnew -red " [Google BBR] 模块启动失败."
             return 1
         fi
     fi
@@ -210,7 +211,7 @@ function uninstall_bbr(){
         read -p "输入[y/n]以选择是否重启系统. 默认为y: " yn_reboot
         [[ -z "${yn_reboot}" ]] && yn_reboot=y
         while [[ ! "${yn_reboot}" =~ ^[YyNn]$ ]]; do
-            printnewed "无效输入."
+            printnew -red "无效输入."
             read -p "请重新输入: " yn_reboot
         done
         if [[ ${yn_reboot} =~ ^[Yy]$ ]]; then
@@ -219,7 +220,7 @@ function uninstall_bbr(){
             reboot
         fi
     else
-        printnewed "检测到系统没有安装 [Google BBR] 模块. "
+        printnew -red "检测到系统没有安装 [Google BBR] 模块. "
     fi
 }
 
@@ -236,7 +237,7 @@ function update_kernel(){
 		new-kernel="kernel-ml kernel-ml-devel kernel-ml-headers"
 	fi
     if ! yum --enablerepo=elrepo-kernel -y install "${new-kernel}"; then
-        printnewed "内核安装失败."
+        printnew -red "内核安装失败."
         exit 1
     else
         printnew -green "内核安装成功."
@@ -285,7 +286,7 @@ function chk_kernel(){
             if [[ ${is_upkernel} =~ ^[Yy]$ ]]; then
                 update_kernel
             else
-                printnewed "你选择不升级内核, 程序终止. "
+                printnew -red "你选择不升级内核, 程序终止. "
                 exit 0
             fi
         else
@@ -302,7 +303,7 @@ function chk_kernel(){
 #####################################################################################
    
 if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
-    printnewed "目前仅支持CentOS6,7及Redhat6,7系统."
+    printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
     exit 1
 else
     typeset -l REINSTALL
@@ -312,7 +313,7 @@ else
         read -p "输入[y/n]选择是否继续, 默认为y：" is_go
         [[ -z "${is_go}" ]] && is_go='y'
         if [[ ! ${is_go} =~ ^[Yy]$ ]]; then
-            printnewed "用户取消, 程序终止."
+            printnew -red "用户取消, 程序终止."
             exit 0
         fi
     else
@@ -324,7 +325,7 @@ else
         [[ -z "${mode}" ]] && mode=1
         #while [[ ! "${forceinstall}" =~ ^[YyNn]$ ]]; do
         while [[ ! "${mode}" =~ ^[1-3]$ ]]; do
-            printnewed "无效输入."
+            printnew -red "无效输入."
             read -p "请重新输入数字以选择: " mode
         done
         if [[ ${mode} -eq 3 ]]; then
@@ -332,7 +333,7 @@ else
                 printnew -green "删除 [Google BBR] 模块中: "
                 uninstall_bbr
             else
-                printnewed "检测到系统没有安装 [Google BBR] 模块. "
+                printnew -red "检测到系统没有安装 [Google BBR] 模块. "
             fi
             exit 0
         fi
