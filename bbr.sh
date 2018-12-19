@@ -21,7 +21,7 @@ EOF
 echo -e "\033[0m"
 # Check If You Are Root
 if [[ $EUID -ne 0 ]]; then
-    printnew -red "错误: 必须以root权限运行此脚本! "
+    printnewed "错误: 必须以root权限运行此脚本! "
     exit 1
 fi
  
@@ -67,42 +67,27 @@ function chk_what(){
         yum install -y virt-what >/dev/null 2>&1
     fi
     if [[ "$(virt-what)" == "openvz" ]]; then
-        printnew -r -red "不支持openvz架构"
+        printnew -red "不支持openvz架构"
         exit 1
     else
         if [[ "$(uname -m)" != "x86_64" ]]; then
-            printnew -red "目前仅支持x86_64架构."
+            printnewed "目前仅支持x86_64架构."
             exit 1
         else
-            printnew -r -green "通过"
+            printnew -green "通过"
         fi
     fi
 }
 
 function Check_OS(){
-    if [[ -f /etc/redhat-release ]]; then
-        if egrep -io "centos[a-z ]*5\." /etc/redhat-release >/dev/null 2>&1; then
-            echo 'centos5'
-        elif egrep -io "centos[a-z ]*6\." /etc/redhat-release >/dev/null 2>&1; then
-            echo 'centos6'
-        elif egrep -io "centos[a-z ]*7\." /etc/redhat-release >/dev/null 2>&1; then
-            echo 'centos7'
-        elif egrep -io "red[a-z ]*hat[a-z ]*5\." /etc/redhat-release >/dev/null 2>&1; then
-            echo 'redhat5'
-        elif egrep -io "red[a-z ]*hat[a-z ]*6\." /etc/redhat-release >/dev/null 2>&1; then
-            echo 'redhat6'
-        elif egrep -io "red[a-z ]*hat[a-z ]*7\." /etc/redhat-release >/dev/null 2>&1; then
-            echo 'redhat7'
-        fi
-    elif [[ -f /etc/issue ]]; then
-        if egrep -i "debian" /etc/issue >/dev/null 2>&1; then
-            echo 'debian'
-        elif egrep -i "ubuntu" /etc/issue >/dev/null 2>&1; then
-            echo 'ubuntu'
-        fi
-    else
-        echo 'unknown'
-    fi
+    Text=$(cat /etc/*-release)
+    if echo ${Text} | egrep -io "(centos[a-z ]*5|red[a-z ]*hat[a-z ]*5)" >/dev/null 2>&1; then echo centos5
+    elif echo ${Text} | egrep -io "(centos[a-z ]*6|red[a-z ]*hat[a-z ]*6)" >/dev/null 2>&1; then echo centos6
+    elif echo ${Text} | egrep -io "(centos[a-z ]*7|red[a-z ]*hat[a-z ]*7)" >/dev/null 2>&1; then echo centos7
+    elif echo ${Text} | egrep -io "Fedora[a-z ]*[0-9]{1,2}" >/dev/null 2>&1; then echo fedora
+    elif echo ${Text} | egrep -io "debian[a-z /]*[0-9]{1,2}" >/dev/null 2>&1; then echo debian
+    elif echo ${Text} | egrep -io "ubuntu" >/dev/null 2>&1; then echo ubuntu
+   fi
 }
 
 function OptNET(){
@@ -151,37 +136,37 @@ function OptNET(){
 function check_elrepo(){
     printnew -a -green "检查elrepo安装源: "
     if ! yum list installed elrepo-release >/dev/null 2>&1; then
-        printnew -r -red "失败"
+        printnew -red "失败"
         printnew -a -green "导入elrepo密钥: "
         if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
         #if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
-            printnew -r -red "失败"
+            printnew -red "失败"
             exit 1
         else
-            printnew -r -green "成功"
+            printnew -green "成功"
         fi
         printnew -a -green "安装elrepo-releases: "
-        if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
+        if [[ "$(Check_OS)" == "centos7" ]]; then
             if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
             #if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
-                printnew -r -red "失败"
+                printnew -red "失败"
                 exit 1
             else
-                printnew -r -green "成功"
+                printnew -green "成功"
             fi
-        elif [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
+        elif [[ "$(Check_OS)" == "centos6" ]]; then
             if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
             #if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
-                printnew -r -red "失败"
+                printnew -red "失败"
                 exit 1
             else
-                printnew -r -green "成功"
+                printnew -green "成功"
             fi
         else
-            printnew -r -red "失败, 暂不支持该系统"
+            printnew -red "失败, 暂不支持该系统"
         fi
     else
-        printnew -r -green "通过"
+        printnew -green "通过"
     fi
 }
 
@@ -190,7 +175,7 @@ function check_bbr(){
         printnew -green " [Google BBR] 模块运行中. "
         return 0
     else
-        printnew -red " [Google BBR] 模块没有运行. "
+        printnewed " [Google BBR] 模块没有运行. "
         return 1
     fi
 }
@@ -209,7 +194,7 @@ function apply_bbr(){
             printnew -green " [Google BBR] 模块启动成功. "
             return 0
         else
-            printnew -red " [Google BBR] 模块启动失败."
+            printnewed " [Google BBR] 模块启动失败."
             return 1
         fi
     fi
@@ -225,16 +210,16 @@ function uninstall_bbr(){
         read -p "输入[y/n]以选择是否重启系统. 默认为y: " yn_reboot
         [[ -z "${yn_reboot}" ]] && yn_reboot=y
         while [[ ! "${yn_reboot}" =~ ^[YyNn]$ ]]; do
-            printnew -red "无效输入."
+            printnewed "无效输入."
             read -p "请重新输入: " yn_reboot
         done
-        if [[ ${yn_reboot} == "y" || ${yn_reboot} == "Y" ]]; then
+        if [[ ${yn_reboot} =~ ^[Yy]$ ]]; then
             printnew -green "重启系统中: "
             sleep 1
             reboot
         fi
     else
-        printnew -red "检测到系统没有安装 [Google BBR] 模块. "
+        printnewed "检测到系统没有安装 [Google BBR] 模块. "
     fi
 }
 
@@ -245,18 +230,23 @@ function update_kernel(){
     fi
     #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
     printnew -green "安装最新版本ml内核: "
-    if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
-        printnew -red "内核安装失败."
+	if [[ "$(Check_OS)" == "centos6" ]]; then
+		new-kernel="kernel-lt kernel-lt-devel kernel-lt-headers"
+	elif [[ "$(Check_OS)" == "centos7" ]]; then
+		new-kernel="kernel-ml kernel-ml-devel kernel-ml-headers"
+	fi
+    if ! yum --enablerepo=elrepo-kernel -y install "${new-kernel}"; then
+        printnewed "内核安装失败."
         exit 1
     else
         printnew -green "内核安装成功."
     fi
     printnew -green "正在设置新内核的启动顺序: "
-    if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
+    if [[ "$(Check_OS)" == "centos7" ]]; then
         grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
         grub2-set-default 0 >/dev/null 2>&1
     fi
-    if [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
+    if [[ "$(Check_OS)" == "centos6" ]]; then
         #sed -i "s/^default.*/default=0/" /boot/grub/grub.conf
         kernel_default=$(grep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | grep "${NET_KERNEL}" | grep -v debug | cut -d' ' -f1 | head -n 1)
         sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
@@ -267,7 +257,7 @@ function update_kernel(){
     printnew -green "设置成功, 请重启系统后再次执行安装. "
     read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
     [[ -z "${is_reboot}" ]] && is_reboot='y'
-    if [[ ${is_reboot} == "y" || ${is_reboot} == "Y" ]]; then
+    if [[ ${is_reboot} =~ ^[Yy]$ ]]; then
         reboot
         exit 0
     else
@@ -284,7 +274,7 @@ function chk_kernel(){
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}')
 
     if version_gt ${KERNEL_NET} '4.10.0'; then
-        printnew -r -green "通过"
+        printnew -green "通过"
         #判断是否有新的内核
         if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
             printnew -green "当前内核: ${KERNEL_VER}"
@@ -292,10 +282,10 @@ function chk_kernel(){
             printnew -green "检测到有新的内核, 是否升级? "
             read -p "输入[y/n]选择, 默认为y：" is_upkernel
             [[ -z "${is_upkernel}" ]] && is_upkernel='y'
-            if [[ ${is_upkernel} == "y" || ${is_upkernel} == "Y" ]]; then
+            if [[ ${is_upkernel} =~ ^[Yy]$ ]]; then
                 update_kernel
             else
-                printnew -red "你选择不升级内核, 程序终止. "
+                printnewed "你选择不升级内核, 程序终止. "
                 exit 0
             fi
         else
@@ -304,15 +294,15 @@ function chk_kernel(){
             fi
         fi
     else
-        printnew -r -red "失败"
+        printnew -red "失败"
         printnew -green "内核过旧, 升级内核: "
         update_kernel
     fi
 }
 #####################################################################################
    
-if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" && "$(Check_OS)" != "redhat7" && "$(Check_OS)" != "redhat6" ]]; then
-    printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
+if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
+    printnewed "目前仅支持CentOS6,7及Redhat6,7系统."
     exit 1
 else
     typeset -l REINSTALL
@@ -321,8 +311,8 @@ else
         printnew -green "将进行 [Google BBR] 模块二次安装进程."
         read -p "输入[y/n]选择是否继续, 默认为y：" is_go
         [[ -z "${is_go}" ]] && is_go='y'
-        if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
-            printnew -red "用户取消, 程序终止."
+        if [[ ! ${is_go} =~ ^[Yy]$ ]]; then
+            printnewed "用户取消, 程序终止."
             exit 0
         fi
     else
@@ -334,7 +324,7 @@ else
         [[ -z "${mode}" ]] && mode=1
         #while [[ ! "${forceinstall}" =~ ^[YyNn]$ ]]; do
         while [[ ! "${mode}" =~ ^[1-3]$ ]]; do
-            printnew -red "无效输入."
+            printnewed "无效输入."
             read -p "请重新输入数字以选择: " mode
         done
         if [[ ${mode} -eq 3 ]]; then
@@ -342,7 +332,7 @@ else
                 printnew -green "删除 [Google BBR] 模块中: "
                 uninstall_bbr
             else
-                printnew -red "检测到系统没有安装 [Google BBR] 模块. "
+                printnewed "检测到系统没有安装 [Google BBR] 模块. "
             fi
             exit 0
         fi
@@ -384,8 +374,8 @@ else
     printnew -a -green "优化并启用 [Google BBR] : "
     OptNET >/dev/null 2>&1
     if apply_bbr >/dev/null 2>&1; then
-        printnew -r -green "启动成功"
+        printnew -green "启动成功"
     else
-        printnew -r -red "启动失败"
+        printnew -red "启动失败"
     fi
 fi
