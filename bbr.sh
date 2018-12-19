@@ -19,6 +19,19 @@ cat <<'EOF'
 ###################################################################
 EOF
 echo -e "\033[0m"
+<<<<<<< HEAD
+=======
+# Check If You Are Root
+if [[ $EUID -ne 0 ]]; then
+    printnew -red "错误: 必须以root权限运行此脚本! "
+    exit 1
+fi
+ 
+function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1";} #大于
+function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1";} #大于或等于
+function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1";} #小于
+function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1";} #小于或等于
+>>>>>>> parent of 8c9f7dc... Update bbr.sh
 
 function printnew(){
     typeset -l CHK
@@ -68,27 +81,42 @@ function chk_what(){
         yum install -y virt-what >/dev/null 2>&1
     fi
     if [[ "$(virt-what)" == "openvz" ]]; then
-        printnew -red "不支持openvz架构"
+        printnew -r -red "不支持openvz架构"
         exit 1
     else
         if [[ "$(uname -m)" != "x86_64" ]]; then
             printnew -red "目前仅支持x86_64架构."
             exit 1
         else
-            printnew -green "通过"
+            printnew -r -green "通过"
         fi
     fi
 }
 
 function Check_OS(){
-    Text=$(cat /etc/*-release)
-    if echo ${Text} | egrep -io "(centos[a-z ]*5|red[a-z ]*hat[a-z ]*5)" >/dev/null 2>&1; then echo centos5
-    elif echo ${Text} | egrep -io "(centos[a-z ]*6|red[a-z ]*hat[a-z ]*6)" >/dev/null 2>&1; then echo centos6
-    elif echo ${Text} | egrep -io "(centos[a-z ]*7|red[a-z ]*hat[a-z ]*7)" >/dev/null 2>&1; then echo centos7
-    elif echo ${Text} | egrep -io "Fedora[a-z ]*[0-9]{1,2}" >/dev/null 2>&1; then echo fedora
-    elif echo ${Text} | egrep -io "debian[a-z /]*[0-9]{1,2}" >/dev/null 2>&1; then echo debian
-    elif echo ${Text} | egrep -io "ubuntu" >/dev/null 2>&1; then echo ubuntu
-   fi
+    if [[ -f /etc/redhat-release ]]; then
+        if egrep -io "centos[a-z ]*5\." /etc/redhat-release >/dev/null 2>&1; then
+            echo 'centos5'
+        elif egrep -io "centos[a-z ]*6\." /etc/redhat-release >/dev/null 2>&1; then
+            echo 'centos6'
+        elif egrep -io "centos[a-z ]*7\." /etc/redhat-release >/dev/null 2>&1; then
+            echo 'centos7'
+        elif egrep -io "red[a-z ]*hat[a-z ]*5\." /etc/redhat-release >/dev/null 2>&1; then
+            echo 'redhat5'
+        elif egrep -io "red[a-z ]*hat[a-z ]*6\." /etc/redhat-release >/dev/null 2>&1; then
+            echo 'redhat6'
+        elif egrep -io "red[a-z ]*hat[a-z ]*7\." /etc/redhat-release >/dev/null 2>&1; then
+            echo 'redhat7'
+        fi
+    elif [[ -f /etc/issue ]]; then
+        if egrep -i "debian" /etc/issue >/dev/null 2>&1; then
+            echo 'debian'
+        elif egrep -i "ubuntu" /etc/issue >/dev/null 2>&1; then
+            echo 'ubuntu'
+        fi
+    else
+        echo 'unknown'
+    fi
 }
 
 function OptNET(){
@@ -137,37 +165,37 @@ function OptNET(){
 function check_elrepo(){
     printnew -a -green "检查elrepo安装源: "
     if ! yum list installed elrepo-release >/dev/null 2>&1; then
-        printnew -red "失败"
+        printnew -r -red "失败"
         printnew -a -green "导入elrepo密钥: "
         if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
         #if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
-            printnew -red "失败"
+            printnew -r -red "失败"
             exit 1
         else
-            printnew -green "成功"
+            printnew -r -green "成功"
         fi
         printnew -a -green "安装elrepo-releases: "
-        if [[ "$(Check_OS)" == "centos7" ]]; then
+        if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
             if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
             #if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
-                printnew -red "失败"
+                printnew -r -red "失败"
                 exit 1
             else
-                printnew -green "成功"
+                printnew -r -green "成功"
             fi
-        elif [[ "$(Check_OS)" == "centos6" ]]; then
+        elif [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
             if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
             #if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
-                printnew -red "失败"
+                printnew -r -red "失败"
                 exit 1
             else
-                printnew -green "成功"
+                printnew -r -green "成功"
             fi
         else
-            printnew -red "失败, 暂不支持该系统"
+            printnew -r -red "失败, 暂不支持该系统"
         fi
     else
-        printnew -green "通过"
+        printnew -r -green "通过"
     fi
 }
 
@@ -214,7 +242,7 @@ function uninstall_bbr(){
             printnew -red "无效输入."
             read -p "请重新输入: " yn_reboot
         done
-        if [[ ${yn_reboot} =~ ^[Yy]$ ]]; then
+        if [[ ${yn_reboot} == "y" || ${yn_reboot} == "Y" ]]; then
             printnew -green "重启系统中: "
             sleep 1
             reboot
@@ -231,23 +259,27 @@ function update_kernel(){
     fi
     #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
     printnew -green "安装最新版本ml内核: "
+<<<<<<< HEAD
 	if [[ "$(Check_OS)" == "centos6" ]]; then
 		new-kernel="kernel-lt kernel-lt-devel kernel-lt-headers"
 	elif [[ "$(Check_OS)" == "centos7" ]]; then
 		new-kernel="kernel-ml kernel-ml-devel kernel-ml-headers"
 	fi
     if ! yum --enablerepo=elrepo-kernel -y install "${new-kernel}"; then
+=======
+    if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
+>>>>>>> parent of 8c9f7dc... Update bbr.sh
         printnew -red "内核安装失败."
         exit 1
     else
         printnew -green "内核安装成功."
     fi
     printnew -green "正在设置新内核的启动顺序: "
-    if [[ "$(Check_OS)" == "centos7" ]]; then
+    if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "redhat7" ]]; then
         grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
         grub2-set-default 0 >/dev/null 2>&1
     fi
-    if [[ "$(Check_OS)" == "centos6" ]]; then
+    if [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "redhat6" ]]; then
         #sed -i "s/^default.*/default=0/" /boot/grub/grub.conf
         kernel_default=$(grep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | grep "${NET_KERNEL}" | grep -v debug | cut -d' ' -f1 | head -n 1)
         sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
@@ -258,7 +290,7 @@ function update_kernel(){
     printnew -green "设置成功, 请重启系统后再次执行安装. "
     read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
     [[ -z "${is_reboot}" ]] && is_reboot='y'
-    if [[ ${is_reboot} =~ ^[Yy]$ ]]; then
+    if [[ ${is_reboot} == "y" || ${is_reboot} == "Y" ]]; then
         reboot
         exit 0
     else
@@ -275,7 +307,7 @@ function chk_kernel(){
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}-[0-9]{1,3}')
 
     if version_gt ${KERNEL_NET} '4.10.0'; then
-        printnew -green "通过"
+        printnew -r -green "通过"
         #判断是否有新的内核
         if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
             printnew -green "当前内核: ${KERNEL_VER}"
@@ -283,7 +315,7 @@ function chk_kernel(){
             printnew -green "检测到有新的内核, 是否升级? "
             read -p "输入[y/n]选择, 默认为y：" is_upkernel
             [[ -z "${is_upkernel}" ]] && is_upkernel='y'
-            if [[ ${is_upkernel} =~ ^[Yy]$ ]]; then
+            if [[ ${is_upkernel} == "y" || ${is_upkernel} == "Y" ]]; then
                 update_kernel
             else
                 printnew -red "你选择不升级内核, 程序终止. "
@@ -295,14 +327,18 @@ function chk_kernel(){
             fi
         fi
     else
-        printnew -red "失败"
+        printnew -r -red "失败"
         printnew -green "内核过旧, 升级内核: "
         update_kernel
     fi
 }
 #####################################################################################
    
+<<<<<<< HEAD
 if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
+=======
+if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" && "$(Check_OS)" != "redhat7" && "$(Check_OS)" != "redhat6" ]]; then
+>>>>>>> parent of 8c9f7dc... Update bbr.sh
     printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
     exit 1
 else
@@ -312,7 +348,11 @@ else
         printnew -green "将进行 [Google BBR] 模块二次安装进程."
         read -p "输入[y/n]选择是否继续, 默认为y：" is_go
         [[ -z "${is_go}" ]] && is_go='y'
+<<<<<<< HEAD
         if [[ ! ${is_go} =~ ^[Yy]$ ]]; then
+=======
+        if [[ ${is_go} != "y" && ${is_go} != "Y" ]]; then
+>>>>>>> parent of 8c9f7dc... Update bbr.sh
             printnew -red "用户取消, 程序终止."
             exit 0
         fi
@@ -375,8 +415,8 @@ else
     printnew -a -green "优化并启用 [Google BBR] : "
     OptNET >/dev/null 2>&1
     if apply_bbr >/dev/null 2>&1; then
-        printnew -green "启动成功"
+        printnew -r -green "启动成功"
     else
-        printnew -red "启动失败"
+        printnew -r -red "启动失败"
     fi
 fi
