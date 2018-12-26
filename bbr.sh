@@ -266,15 +266,27 @@ function update_kernel(){
             printnew -green "内核安装成功."
         fi
     fi
-    printnew -green "正在设置新内核的启动顺序: "
+    printnew -green -a "正在设置新内核的启动顺序: "
     if [[ "$(Check_OS)" == "centos7" ]]; then
         grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
-        grub2-set-default 0 >/dev/null 2>&1
+        #grub2-set-default 0 >/dev/null 2>&1
+        kernel_list=$(cat /boot/grub2/grub.cfg | egrep -io "CentOS Linux[[:print:]]*\(core\)")
+        kernel_ver=$(echo "${list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
+        kernel_name=$(echo "${list}" | egrep -i ${kernel_ver})
+        grub2-set-default "${kernel_name}"
+        kernel_now=$(grub2-editenv list | awk -F '=' '{print $2}')
+        if test "${kernel_name}" == "${kernel_now}"; then
+            printnew -green "成功. "
+        else
+            printnew -red "失败. "
+            exit 1
+        fi
     fi
     if [[ "$(Check_OS)" == "centos6" ]]; then
         #sed -i "s/^default.*/default=0/" /boot/grub/grub.conf
         kernel_default=$(grep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | grep "${NET_KERNEL}" | grep -v debug | cut -d' ' -f1 | head -n 1)
         sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
+        printnew -green "成功. "
     fi
     if ! egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
         echo "sh ${MY_SCRIPT} install">>~/.bashrc
