@@ -304,7 +304,7 @@ function chk_kernel(){
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')
 
     if version_gt ${KERNEL_NET} '4.9.0'; then
-        printnew -red "通过"
+        printnew -green "通过"
         #判断是否有新的内核
         if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
             printnew -green "当前内核: ${KERNEL_VER}"
@@ -324,7 +324,7 @@ function chk_kernel(){
             fi
         fi
     else
-        printnew -green "失败"
+        printnew -red "失败"
         if version_lt ${KERNEL_NET} '4.9.0'; then
             if [[ "$(Check_OS)" == "centos6" ]]; then
                 printnew -green "尝试升级内核."
