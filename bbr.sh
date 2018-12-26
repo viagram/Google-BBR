@@ -268,26 +268,36 @@ function update_kernel(){
     fi
     printnew -green -a "正在设置新内核的启动顺序: "
     if [[ "$(Check_OS)" == "centos7" ]]; then
-		if ! command -v grub2-mkconfig >/dev/null 2>&1; then
-			yum remove -y grub2-tools-minimal
-			yum install -y grub2-tools
-		fi
-        grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
-        kernel_list=$(cat /boot/grub2/grub.cfg | egrep -io "CentOS Linux[[:print:]]*\(core\)")
-        kernel_ver=$(echo "${kernel_list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
-        kernel_name=$(echo "${kernel_list}" | egrep -i ${kernel_ver} | sort -Vur | head -n1)
-        grub2-set-default "${kernel_name}"
-        kernel_now=$(grub2-editenv list | awk -F '=' '{print $2}')
-        if test "${kernel_name}" == "${kernel_now}"; then
-            printnew -yellow "成功. "
+        if [[ -f /boot/grub/grub.conf ]]; then
+			kernel_list=$(cat /boot/grub/grub.conf | egrep -io "CentOS Linux[[:print:]]*\(core\)")
+			kernel_ver=$(echo "${kernel_list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
+			kernel_default=$(egrep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | egrep  -i ${kernel_ver} | egrep -v debug | awk '{print $1}' | head -n 1)
+			sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
+			printnew -yellow "成功. "
         else
-            printnew -red "失败. "
-            exit 1
-        fi
+			if ! command -v grub2-mkconfig >/dev/null 2>&1; then
+				yum remove -y grub2-tools-minimal
+				yum install -y grub2-tools
+			fi
+			grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
+			kernel_list=$(cat /boot/grub2/grub.cfg | egrep -io "CentOS Linux[[:print:]]*\(core\)")
+			kernel_ver=$(echo "${kernel_list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
+			kernel_name=$(echo "${kernel_list}" | egrep -i ${kernel_ver} | sort -Vur | head -n1)
+			grub2-set-default "${kernel_name}"
+			kernel_now=$(grub2-editenv list | awk -F '=' '{print $2}')
+			if test "${kernel_name}" == "${kernel_now}"; then
+				printnew -yellow "成功. "
+				printnew -green "最新内核: ${kernel_name}"
+				printnew -green "默认内核: ${kernel_now}"
+			else
+				printnew -red "失败. "
+				exit 1
+			fi
+		fi
     fi
     if [[ "$(Check_OS)" == "centos6" ]]; then
         #sed -i "s/^default.*/default=0/" /boot/grub/grub.conf
-        kernel_default=$(grep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | grep "${NET_KERNEL}" | grep -v debug | cut -d' ' -f1 | head -n 1)
+        kernel_default=$(egrep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | egrep "${NET_KERNEL}" | egrep -v debug | awk '{print $1}' | head -n 1)
         sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
         printnew -yellow "成功. "
     fi
@@ -318,7 +328,7 @@ function chk_kernel(){
     KERNEL_NET=$(yum --enablerepo=elrepo-kernel list kernel-${kernel_bs} | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')
 
-    if version_gt ${KERNEL_NET} '4.9.0'; then
+    if version_gt ${KERNEL_VER} '4.9.0'; then
         printnew -green "通过"
         #判断是否有新的内核
         if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
