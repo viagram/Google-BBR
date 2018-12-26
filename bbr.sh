@@ -268,11 +268,14 @@ function update_kernel(){
     fi
     printnew -green -a "正在设置新内核的启动顺序: "
     if [[ "$(Check_OS)" == "centos7" ]]; then
-        grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
-        #grub2-set-default 0 >/dev/null 2>&1
+		if ! command -v grub2-mkconfig >/dev/null 2>&1; then
+			yum remove -y grub2-tools-minimal
+			yum install -y grub2-tools
+		fi
+        grub2-mkconfig -o /boot/grub2/grub.cfg
         kernel_list=$(cat /boot/grub2/grub.cfg | egrep -io "CentOS Linux[[:print:]]*\(core\)")
-        kernel_ver=$(echo "${list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
-        kernel_name=$(echo "${list}" | egrep -i ${kernel_ver})
+        kernel_ver=$(echo "${kernel_list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
+        kernel_name=$(echo "${kernel_list}" | egrep -i ${kernel_ver} | sort -Vur | head -n1)
         grub2-set-default "${kernel_name}"
         kernel_now=$(grub2-editenv list | awk -F '=' '{print $2}')
         if test "${kernel_name}" == "${kernel_now}"; then
