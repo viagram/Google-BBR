@@ -344,9 +344,7 @@ function chk_kernel(){
                 exit 0
             fi
         else
-            if lsmod | grep nanqinlang >/dev/null 2>&1; then
-                printnew -green "系统内核已是最新版本. "
-            fi
+            printnew -green "系统内核已是最新版本. "
         fi
     else
         printnew -red "失败"
@@ -420,9 +418,9 @@ else
     fi
     
     #更新启动配置并删除其它内核
-    if rpm -qa | grep kernel | grep -v "${KERNEL_VER}" >/dev/null 2>&1; then
+    if rpm -qa | grep kernel | grep -v "$(uname -r)" >/dev/null 2>&1; then
         printnew -green "删除其它老旧内核: "
-        rpm -qa | grep kernel | grep -v "${KERNEL_VER}" | xargs yum remove -y
+        rpm -qa | grep kernel | grep -v "$(uname -r)" | xargs yum remove -y
         cd /lib/modules/
         ls | grep -v $(uname -r) | xargs rm -rf
         cd - >/dev/null 2>&1
