@@ -30,7 +30,7 @@ function printnew(){
         if echo "${CHK}" | egrep -io "^\-[[:graph:]]*" >/dev/null 2>&1; then
             case "${CHK}" in
                 -black) COLOUR="\033[30m";;
-                -red) COLOUR="\033[41;37m";;
+                -red) COLOUR="\033[31m";;
                 -green) COLOUR="\033[32m";;
                 -yellow) COLOUR="\033[33m";;
                 -blue) COLOUR="\033[34m";;
@@ -45,7 +45,7 @@ function printnew(){
         fi
     done
     if [[ ${HUANHANG} -eq 1 ]]; then
-        printf "${COLOUR}%b%s \033[0m" "${WENZHI}"
+        printf "${COLOUR}%b%s\033[0m" "${WENZHI}"
     else
         printf "${COLOUR}%b%s\033[0m\n" "${WENZHI}"
     fi
@@ -95,10 +95,11 @@ function OptNET(){
     # 以前优化设置来自于网络, 具体用处嘛~~~我也不知道^_^.
     sysctl=/etc/sysctl.conf
     limits=/etc/security/limits.conf
-    sed -i '/* soft nofile/d' $limits;echo '* soft nofile 512000'>>$limits
+    sed -i '/* soft nofile/d' $limits;echo '* soft nofile 1024000'>>$limits
     sed -i '/* hard nofile/d' $limits;echo '* hard nofile 1024000'>>$limits
+	echo "ulimit -SHn 1024000">>/etc/profile
     ulimit -n 512000
-    sed -i '/net.ipv4.ip_forward/d' $sysctl;echo 'net.ipv4.ip_forward=0'>>$sysctl
+    sed -i '/net.ipv4.ip_forward/d' $sysctl;echo 'net.ipv4.ip_forward=1'>>$sysctl
     sed -i '/net.ipv4.conf.default.rp_filter/d' $sysctl;echo 'net.ipv4.conf.default.rp_filter=1'>>$sysctl
     sed -i '/net.ipv4.conf.default.accept_source_route/d' $sysctl;echo 'net.ipv4.conf.default.accept_source_route=0'>>$sysctl
     sed -i '/kernel.sysrq/d' $sysctl;echo 'kernel.sysrq=0'>>$sysctl
@@ -107,7 +108,7 @@ function OptNET(){
     sed -i '/kernel.msgmax/d' $sysctl;echo 'kernel.msgmax=65536'>>$sysctl
     sed -i '/kernel.shmmax/d' $sysctl;echo 'kernel.shmmax=68719476736'>>$sysctl
     sed -i '/kernel.shmall/d' $sysctl;echo 'kernel.shmall=4294967296'>>$sysctl
-    sed -i '/net.ipv4.tcp_timestamps/d' $sysctl;echo 'net.ipv4.tcp_timestamps=1'>>$sysctl
+    sed -i '/net.ipv4.tcp_timestamps/d' $sysctl;echo 'net.ipv4.tcp_timestamps=0'>>$sysctl
     sed -i '/net.ipv4.tcp_retrans_collapse/d' $sysctl;echo 'net.ipv4.tcp_retrans_collapse=0'>>$sysctl
     sed -i '/net.ipv4.icmp_echo_ignore_broadcasts/d' $sysctl;echo 'net.ipv4.icmp_echo_ignore_broadcasts=1'>>$sysctl
     sed -i '/net.ipv4.conf.all.rp_filter/d' $sysctl;echo 'net.ipv4.conf.all.rp_filter=1'>>$sysctl
@@ -117,15 +118,15 @@ function OptNET(){
     sed -i '/kernel.hung_task_timeout_secs=0/d' $sysctl;echo 'kernel.hung_task_timeout_secs=0'>>$sysctl
     sed -i '/fs.file-max/d' $sysctl;echo 'fs.file-max=1024000'>>$sysctl
     sed -i '/net.core.wmem_max/d' $sysctl;echo 'net.core.wmem_max=67108864'>>$sysctl
-    sed -i '/net.core.netdev_max_backlog/d' $sysctl;echo 'net.core.netdev_max_backlog=250000'>>$sysctl
-    sed -i '/net.core.somaxconn/d' $sysctl;echo 'net.core.somaxconn=4096'>>$sysctl
+    sed -i '/net.core.netdev_max_backlog/d' $sysctl;echo 'net.core.netdev_max_backlog=32768'>>$sysctl
+    sed -i '/net.core.somaxconn/d' $sysctl;echo 'net.core.somaxconn=32768'>>$sysctl
     sed -i '/net.ipv4.tcp_syncookies/d' $sysctl;echo 'net.ipv4.tcp_syncookies=1'>>$sysctl
     sed -i '/net.ipv4.tcp_tw_reuse/d' $sysctl;echo 'net.ipv4.tcp_tw_reuse=1'>>$sysctl
     sed -i '/net.ipv4.tcp_fin_timeout/d' $sysctl;echo 'net.ipv4.tcp_fin_timeout=30'>>$sysctl
     sed -i '/net.ipv4.tcp_keepalive_time/d' $sysctl;echo 'net.ipv4.tcp_keepalive_time=1200'>>$sysctl
-    sed -i '/net.ipv4.ip_local_port_range/d' $sysctl;echo 'net.ipv4.ip_local_port_range=10000'>>$sysctl
+    sed -i '/net.ipv4.ip_local_port_range/d' $sysctl;echo 'net.ipv4.ip_local_port_range=1024 65500'>>$sysctl
     sed -i '/net.ipv4.tcp_max_syn_backlog/d' $sysctl;echo 'net.ipv4.tcp_max_syn_backlog=8192'>>$sysctl
-    sed -i '/net.ipv4.tcp_max_tw_buckets/d' $sysctl;echo 'net.ipv4.tcp_max_tw_buckets=5000'>>$sysctl
+    sed -i '/net.ipv4.tcp_max_tw_buckets/d' $sysctl;echo 'net.ipv4.tcp_max_tw_buckets=6000'>>$sysctl
     sed -i '/net.ipv4.tcp_fastopen/d' $sysctl;echo 'net.ipv4.tcp_fastopen=3'>>$sysctl
     sed -i '/net.ipv4.tcp_rmem/d' $sysctl;echo 'net.ipv4.tcp_rmem=4096'>>$sysctl
     sed -i '/net.ipv4.tcp_wmem/d' $sysctl;echo 'net.ipv4.tcp_wmem=4096'>>$sysctl
