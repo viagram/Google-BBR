@@ -135,56 +135,19 @@ function OptNET(){
 	sleep 1
 }
 
-function check_elrepo(){
-	printnew -a -green "检查elrepo安装源: "
-	if ! yum list installed elrepo-release >/dev/null 2>&1; then
-		printnew -red "失败"
-		printnew -a -green "导入elrepo密钥: "
-		if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
-		#if ! rpm --import http://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
-			printnew -red "失败"
-			exit 1
-		else
-			printnew -green "成功"
-		fi
-		printnew -a -green "安装elrepo-releases: "
-		if [[ "$(Check_OS)" == "centos7" ]]; then
-			if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
-			#if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
-				printnew -red "失败"
-				exit 1
-			else
-				printnew -green "成功"
-			fi
-		elif [[ "$(Check_OS)" == "centos6" ]]; then
-			if ! rpm -Uvh https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
-			#if ! rpm -Uvh http://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm >/dev/null 2>&1; then
-				printnew -red "失败"
-				exit 1
-			else
-				printnew -green "成功"
-			fi
-		else
-			printnew -red "失败, 暂不支持该系统"
-		fi
-	else
-		printnew -green "通过"
-	fi
-}
-
 function check_bbr(){
 	if lsmod | grep tcp_bbr >/dev/null 2>&1; then
-		printnew -green " [Google BBR] 模块运行中. "
+		printnew -green " [BBR v2] 模块运行中. "
 		return 0
 	else
-		printnew -red " [Google BBR] 模块没有运行. "
+		printnew -red " [BBR v2] 模块没有运行. "
 		return 1
 	fi
 }
 
 function apply_bbr(){
 	if check_bbr; then
-		printnew -green " [Google BBR] 模块运行中. "
+		printnew -green " [BBR v2] 模块运行中. "
 		return 0
 	else
 		sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
@@ -193,10 +156,10 @@ function apply_bbr(){
 		echo 'net.ipv4.tcp_congestion_control=bbr' >> /etc/sysctl.conf
 		sysctl -p >/dev/null 2>&1
 		if check_bbr; then
-			printnew -green " [Google BBR] 模块启动成功. "
+			printnew -green " [BBR v2] 模块启动成功. "
 			return 0
 		else
-			printnew -red " [Google BBR] 模块启动失败."
+			printnew -red " [BBR v2] 模块启动失败."
 			return 1
 		fi
 	fi
@@ -208,7 +171,7 @@ function uninstall_bbr(){
 		sed -i '/net\.ipv4\.tcp_congestion_control=/d' /etc/sysctl.conf
 		sysctl -p >/dev/null 2>&1
 		sleep 1
-		printnew -green "删除成功, 请重启系统以停止 [Google BBR] 模块."
+		printnew -green "删除成功, 请重启系统以停止 [BBR v2] 模块."
 		read -p "输入[y/n]以选择是否重启系统. 默认为y: " yn_reboot
 		[[ -z "${yn_reboot}" ]] && yn_reboot=y
 		while [[ ! "${yn_reboot}" =~ ^[YyNn]$ ]]; do
@@ -221,157 +184,69 @@ function uninstall_bbr(){
 			reboot
 		fi
 	else
-		printnew -red "检测到系统没有安装 [Google BBR] 模块. "
+		printnew -red "检测到系统没有安装 [BBR v2] 模块. "
 	fi
 }
 
-function update_kernel(){
+function _install_v2_kernel(){
 	if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1; then
 		printnew -green "为避免冲突, 正在删除旧版本的kernel-headers: "
 		rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
 	fi
-	#注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
-	if [[ "$(Check_OS)" == "centos6" ]]; then
-		kernel_upver='4.18.20-1'
-		if version_ge "$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')" "${kernel_upver}"; then
-			printnew -green "暂无可升级的新版本内核."
-			return
-		fi
-		printnew -green -a "安装${kernel_upver}版本内核: "
-		if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-${kernel_upver}.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
-			printnew -red "失败"
-			exit 1
-		else
-			printnew -green "成功"
-		fi
-		printnew -green -a  "安装${kernel_upver}版本devel: "
-		if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-devel-${kernel_upver}.el6.elrepo.x86_64.rpm>/dev/null 2>&1; then
-			printnew -red "失败"
-			exit 1
-		else
-			printnew -green "成功"
-		fi
-		printnew -green -a "安装${kernel_upver}版本headers: "
-		if ! rpm -Uvh https://github.com/viagram/Google-BBR/raw/master/kernel-ml-headers-${kernel_upver}.el6.elrepo.x86_64.rpm >/dev/null 2>&1; then
-			printnew -red "失败"
-			exit 1
-		else
-			printnew -green "成功"
-		fi
-	elif [[ "$(Check_OS)" == "centos7" ]]; then
-		printnew -green "安装最新版本ml内核: "
-		if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
-			printnew -red "内核安装失败."
-			exit 1
-		else
-			printnew -green "内核安装成功."
-		fi
+	#https://github.com/xiya233/bbr2/tree/master/centos
+	down_url='https://raw.githubusercontent.com/xiya233/bbr2/master/centos/'
+	! wget -c ${down_url}kernel-5.2.0_rc3+-1.x86_64.rpm -O kernel-5.2.0_rc3+-1.x86_64.rpm && echo -e "\033[31m下载失败\033[0m"
+	! wget -c ${down_url}kernel-headers-5.2.0_rc3+-1.x86_64.rpm -O kernel-headers-5.2.0_rc3+-1.x86_64.rpm && echo -e "\033[31m下载失败\033[0m"
+	if ! yum install -y kernel-5.2.0_rc3+-1.x86_64.rpm kernel-headers-5.2.0_rc3+-1.x86_64.rpm; then
+		printnew -red "内核安装失败."
+		rm -rf kernel-5.2.0_rc3+-1.x86_64.rpm kernel-headers-5.2.0_rc3+-1.x86_64.rpm
+		exit 1
+	else
+		printnew -green "内核安装成功."
 	fi
+	rm -rf kernel-5.2.0_rc3+-1.x86_64.rpm kernel-headers-5.2.0_rc3+-1.x86_64.rpm
 	printnew -green -a "正在设置新内核的启动顺序: "
-	if [[ "$(Check_OS)" == "centos7" ]]; then
-		if [[ -f /boot/grub/grub.conf ]]; then
-			kernel_list=$(cat /boot/grub/grub.conf | egrep -io "CentOS Linux[[:print:]]*\(core\)")
-			kernel_ver=$(echo "${kernel_list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
-			kernel_default=$(egrep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | egrep  -i ${kernel_ver} | egrep -v debug | awk '{print $1}' | head -n 1)
-			sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
-			printnew -yellow "成功. "
-		else
-			if ! command -v grub2-mkconfig >/dev/null 2>&1; then
-				yum remove -y grub2-tools-minimal
-				yum install -y grub2-tools
-			fi
-			grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
-			kernel_list=$(cat /boot/grub2/grub.cfg | egrep -io "CentOS Linux[[:print:]]*\(core\)")
-			kernel_ver=$(echo "${kernel_list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
-			kernel_name=$(echo "${kernel_list}" | egrep -i ${kernel_ver} | sort -Vur | head -n1)
-			grub2-set-default "${kernel_name}"
-			kernel_now=$(grub2-editenv list | awk -F '=' '{print $2}')
-			if test "${kernel_name}" == "${kernel_now}"; then
-				printnew -yellow "成功. "
-				printnew -green "最新内核: ${kernel_name}"
-				printnew -green "默认内核: ${kernel_now}"
-			else
-				printnew -red "失败. "
-				exit 1
-			fi
-		fi
-	fi
-	if [[ "$(Check_OS)" == "centos6" ]]; then
-		#sed -i "s/^default.*/default=0/" /boot/grub/grub.conf
-		kernel_default=$(egrep '^title ' /boot/grub/grub.conf | awk -F'title ' '{print i++ " : " $2}' | egrep "${NET_KERNEL}" | egrep -v debug | awk '{print $1}' | head -n 1)
+	if [[ -f /boot/grub/grub.conf ]]; then
+		kernel_default="CentOS Linux (5.2.0-rc3+) 7 (Core)"
 		sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
 		printnew -yellow "成功. "
+	else
+		if ! command -v grub2-mkconfig >/dev/null 2>&1; then
+			yum remove -y grub2-tools-minimal
+			yum install -y grub2-tools
+		fi
+		grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
+		kernel_name="CentOS Linux (5.2.0-rc3+) 7 (Core)"
+		grub2-set-default "${kernel_name}"
+		kernel_now=$(grub2-editenv list | awk -F '=' '{print $2}')
+		if test "${kernel_name}" == "${kernel_now}"; then
+			printnew -yellow "成功. "
+			printnew -green "最新内核: ${kernel_name}"
+			printnew -green "默认内核: ${kernel_now}"
+		else
+			printnew -red "失败. "
+			exit 1
+		fi
 	fi
+
 	if ! egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
 		echo "sh ${MY_SCRIPT} install">>~/.bashrc
 	fi
 	printnew -green "设置成功, 请重启系统后再次执行安装. "
 	read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
 	[[ -z "${is_reboot}" ]] && is_reboot='y'
-	if [[ ${is_reboot} =~ ^[Yy]$ ]]; then
-		reboot
-		exit 0
-	else
-		exit 0
-	fi
+	[[ ${is_reboot} =~ ^[Yy]$ ]] && reboot
 }
 
-function chk_kernel(){
-	printnew -a -green "检测系统内核: "
-	if ! command -v curl >/dev/null 2>&1; then
-		yum install -y curl >/dev/null 2>&1
-	fi
-	if [[ "$(Check_OS)" == "centos6" ]]; then
-		kernel_bs="lt"
-	elif [[ "$(Check_OS)" == "centos7" ]]; then
-		kernel_bs="ml"
-	fi
-	KERNEL_NET=$(yum --enablerepo=elrepo-kernel list kernel-${kernel_bs} | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
-	KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')
-
-	if version_gt ${KERNEL_VER} '4.9.0'; then
-		printnew -green "通过"
-		#判断是否有新的内核
-		if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
-			printnew -green "当前内核: ${KERNEL_VER}"
-			printnew -green "最新内核: ${KERNEL_NET} "
-			printnew -green "检测到有新的内核, 是否升级? "
-			read -p "输入[y/n]选择, 默认为y：" is_upkernel
-			[[ -z "${is_upkernel}" ]] && is_upkernel='y'
-			if [[ ${is_upkernel} =~ ^[Yy]$ ]]; then
-				update_kernel
-			else
-				printnew -red "你选择不升级内核, 程序终止. "
-				exit 0
-			fi
-		else
-			printnew -green "系统内核已是最新版本. "
-		fi
-	else
-		printnew -red "失败"
-		if version_lt ${KERNEL_NET} '4.9.0'; then
-			if [[ "$(Check_OS)" == "centos6" ]]; then
-				printnew -green "尝试升级内核."
-				update_kernel
-			else
-				printnew -red "暂无支持Google BBR的内核版本."
-				exit 1
-			fi
-		else
-			printnew -green "内核过旧, 升级内核."
-			update_kernel
-		fi
-	fi
-}
 #####################################################################################
-if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
-	printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
+if [[ "$(Check_OS)" != "centos7" ]]; then
+	printnew -red "目前仅支持CentOS 7及Redhat 7系统."
 	exit 1
 else
 	typeset -l REINSTALL
 	REINSTALL="${1}"
 	if [[ -n "${REINSTALL}" && "${REINSTALL}" == "install" ]]; then
-		printnew -green "将进行 [Google BBR] 模块二次安装进程."
+		printnew -green "将进行 [BBR v2] 模块二次安装进程."
 		read -p "输入[y/n]选择是否继续, 默认为y：" is_go
 		[[ -z "${is_go}" ]] && is_go='y'
 		if [[ ! ${is_go} =~ ^[Yy]$ ]]; then
@@ -380,37 +255,44 @@ else
 		fi
 	else
 		printnew -green "请输入数字进行选择."
-		printnew -green "   1, 安装 [Google BBR] 模块"
-		printnew -green "   2, 查看 [Google BBR] 状态"
-		printnew -green "   3, 删除 [Google BBR] 模块"
+		printnew -green "   1, 安装 [BBR v2] 模块"
+		printnew -green "   2, 查看 [BBR v2] 状态"
+		printnew -green "   3, 删除 [BBR v2] 模块"
+		printnew -green "   0, 退出脚本"
 		read -p "输入[1/2/3]以选择相应模式. 默认为1: " mode
 		[[ -z "${mode}" ]] && mode=1
 		#while [[ ! "${forceinstall}" =~ ^[YyNn]$ ]]; do
-		while [[ ! "${mode}" =~ ^[1-3]$ ]]; do
+		while [[ ! "${mode}" =~ ^[0-3]$ ]]; do
 			printnew -red "无效输入."
 			read -p "请重新输入数字以选择: " mode
 		done
-		if [[ ${mode} -eq 3 ]]; then
+		case "${mode}" in
+		1)
+			_install_v2_kernel
+		;;
+		2)
+			check_bbr
+		;;
+		3)
 			if check_bbr >/dev/null 2>&1; then
-				printnew -green "删除 [Google BBR] 模块中: "
+				printnew -green "删除 [BBR v2] 模块中: "
 				uninstall_bbr
 			else
-				printnew -red "检测到系统没有安装 [Google BBR] 模块. "
+				printnew -red "检测到系统没有安装 [BBR v2] 模块. "
 			fi
-			exit 0
-		fi
-		if [[ ${mode} -eq 2 ]]; then
-			# 查看 [Google BBR] 状态
-			check_bbr
-			exit 0
-		fi
+		;;
+		0)
+			exit 1
+		;;
+		*)
+			printnew -red "	Error."
+			exit 1
+		;;
+		esac
 	fi
 
 	#检测系统架构
 	chk_what
-	#检测内核
-	check_elrepo
-	chk_kernel
 	
 	#删除二次登陆启动项
 	if egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
@@ -428,13 +310,13 @@ else
 	fi
 
 	if check_bbr >/dev/null 2>&1; then
-		printnew "\033[41;37m提示: \033[0m\033[32m检测到 [Google BBR] 模块已在运行中. "
+		printnew "\033[41;37m提示: \033[0m\033[32m检测到 [BBR v2] 模块已在运行中. "
 		exit 0
 	else
-		printnew -green "进行[ [Google BBR] 模块]安装进程: "
+		printnew -green "进行[ [BBR v2] 模块]安装进程: "
 	fi
 	
-	printnew -a -green "优化并启用 [Google BBR] : "
+	printnew -a -green "优化并启用 [BBR v2] : "
 	OptNET >/dev/null 2>&1
 	if apply_bbr >/dev/null 2>&1; then
 		printnew -green "启动成功"
