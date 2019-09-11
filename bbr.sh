@@ -332,9 +332,11 @@ function chk_kernel(){
 	if version_gt ${KERNEL_VER} '4.9.0'; then
 		printnew -green "通过"
 		#判断是否有新的内核
+		printnew -green -a "当前内核: "
+		printnew -yellow ${KERNEL_VER}
+		printnew -green -a "最新内核: "
+		printnew -yellow ${KERNEL_NET}
 		if version_gt ${KERNEL_NET} ${KERNEL_VER}; then
-			printnew -green "当前内核: ${KERNEL_VER}"
-			printnew -green "最新内核: ${KERNEL_NET} "
 			printnew -green "检测到有新的内核, 是否升级? "
 			read -p "输入[y/n]选择, 默认为y：" is_upkernel
 			[[ -z "${is_upkernel}" ]] && is_upkernel='y'
