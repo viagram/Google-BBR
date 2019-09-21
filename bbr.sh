@@ -285,6 +285,7 @@ function update_kernel(){
 			[[ -z ${grub_cfg} ]] && [[ -f /boot/efi/EFI/centos/grub.cfg ]] && grub_cfg=/boot/efi/EFI/centos/grub.cfg
 			[[ -z ${grub_cfg} ]] && (printnew -red "没找linu启动文件.";exit 1)
 			grub2-mkconfig -o ${grub_cfg} >/dev/null 2>&1
+			grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
 			kernel_list=$(cat ${grub_cfg} | egrep -io "CentOS Linux[[:print:]]*\(core\)")
 			kernel_ver=$(echo "${kernel_list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
 			kernel_name=$(echo "${kernel_list}" | egrep -i ${kernel_ver} | sort -Vur | head -n1)
