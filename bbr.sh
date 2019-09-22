@@ -310,7 +310,7 @@ function update_kernel(){
 	if ! egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
 		echo "sh ${MY_SCRIPT} install">>~/.bashrc
 	fi
-	[[ ${grub_cfg} == "/boot/efi/EFI/centos/grub.cfg" ]] && yum install -y efibootmgr
+	[[ ${grub_cfg} == "/boot/efi/EFI/centos/grub.cfg" ]] && yum install -y efibootmgr >/dev/null 2>&1
 	printnew -green "设置成功, 请重启系统后再次执行安装. "
 	read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
 	[[ -z "${is_reboot}" ]] && is_reboot='y'
