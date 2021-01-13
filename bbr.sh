@@ -62,6 +62,19 @@ function version_ge() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)"
 function version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1";} #小于
 function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" == "$1";} #小于或等于
 
+function install(){
+	zsph="/usr/bin/bbr"
+	myph="$(dirname $(readlink -f $0))/$(basename $0)"
+	if [[ -f ${myph} ]]; then
+		if [[ ${myph} != ${zsph} ]]; then
+			echo -e "\033[32m    安装路径: ${zsph}\033[0m"
+			cp -rf ${myph} ${zsph}
+			chmod +x ${zsph}
+			rm -rf ${myph}
+		fi
+	fi
+}
+
 function chk_what(){
 	printnew -a -green "检测系统架构: "
 	if ! command -v virt-what >/dev/null 2>&1; then
@@ -377,6 +390,7 @@ if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
 	printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
 	exit 1
 else
+    install
 	typeset -l REINSTALL
 	REINSTALL="${1}"
 	if [[ -n "${REINSTALL}" && "${REINSTALL}" == "install" ]]; then
