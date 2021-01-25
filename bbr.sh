@@ -134,7 +134,7 @@ function OptNET(){
 	sed -i '/net.ipv4.tcp_rmem/d' $sysctl;echo 'net.ipv4.tcp_rmem=4096'>>$sysctl
 	sed -i '/net.ipv4.tcp_wmem/d' $sysctl;echo 'net.ipv4.tcp_wmem=4096'>>$sysctl
 	sed -i '/net.ipv4.tcp_mtu_probing/d' $sysctl;echo 'net.ipv4.tcp_mtu_probing=1'>>$sysctl
-	sed -i '/net.ipv4.tcp_ecn/d' $sysctl;echo 'net.ipv4.tcp_ecn=2'>>$sysctl
+	sed -i '/net.ipv4.tcp_ecn/d' $sysctl;echo 'net.ipv4.tcp_ecn=1'>>$sysctl
 	sed -i '/net.ipv4.tcp_ecn_fallback/d' $sysctl;echo 'net.ipv4.tcp_ecn_fallback=1'>>$sysctl
 	sysctl -p
 	sleep 1
