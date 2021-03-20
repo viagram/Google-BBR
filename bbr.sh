@@ -66,7 +66,7 @@ function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" 
 
 function chk_what(){
 	printnew -a -green "检测系统架构: "
-	if ! command -v virt-what >/dev/null 2>&1; then
+	if ! which virt-what >/dev/null 2>&1; then
 		yum install -y virt-what >/dev/null 2>&1
 	fi
 	if [[ "$(virt-what)" == "openvz" ]]; then
@@ -281,7 +281,7 @@ function update_kernel(){
 			sed -i "s/^default.*/default=${kernel_default}/" /boot/grub/grub.conf >/dev/null 2>&1
 			printnew -yellow "成功. "
 		else
-			if ! command -v grub2-mkconfig >/dev/null 2>&1; then
+			if ! which grub2-mkconfig >/dev/null 2>&1; then
 				yum remove -y grub2-tools-minimal
 				yum install -y grub2-tools
 			fi
@@ -329,7 +329,7 @@ function update_kernel(){
 
 function chk_kernel(){
 	printnew -a -green "检测系统内核: "
-	if ! command -v curl >/dev/null 2>&1; then
+	if ! which curl >/dev/null 2>&1; then
 		yum install -y curl >/dev/null 2>&1
 	fi
 	if [[ "$(Check_OS)" == "centos6" ]]; then
