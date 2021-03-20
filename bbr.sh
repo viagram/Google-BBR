@@ -320,7 +320,7 @@ function update_kernel(){
 	read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
 	[[ -z "${is_reboot}" ]] && is_reboot='y'
 	if [[ ${is_reboot} =~ ^[Yy]$ ]]; then
-		reboot
+		reboot -f
 		exit 0
 	else
 		exit 0
