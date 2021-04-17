@@ -433,6 +433,7 @@ else
 	chk_what
 	#检测内核
 	check_elrepo
+    yum -y remove qemu-guest-agent
 	chk_kernel
 	
 	#删除二次登陆启动项
