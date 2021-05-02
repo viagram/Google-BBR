@@ -88,6 +88,7 @@ function Check_OS(){
     elif echo ${Text} | egrep -io "(centos[a-z ]*6|red[a-z ]*hat[a-z ]*6)" >/dev/null 2>&1; then echo centos6
     elif echo ${Text} | egrep -io "(centos[a-z ]*7|red[a-z ]*hat[a-z ]*7)" >/dev/null 2>&1; then echo centos7
     elif echo ${Text} | egrep -io "(centos[a-z ]*8|red[a-z ]*hat[a-z ]*8)" >/dev/null 2>&1; then echo centos8
+    elif echo ${Text} | egrep -io "(Rocky[a-z ]*8|red[a-z ]*hat[a-z ]*8)" >/dev/null 2>&1; then echo rockylinux8
     elif echo ${Text} | egrep -io "Fedora[a-z ]*[0-9]{1,2}" >/dev/null 2>&1; then echo fedora
     elif echo ${Text} | egrep -io "debian[a-z /]*[0-9]{1,2}" >/dev/null 2>&1; then echo debian
     elif echo ${Text} | egrep -io "ubuntu" >/dev/null 2>&1; then echo ubuntu
