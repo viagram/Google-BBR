@@ -22,35 +22,29 @@ cat <<'EOF'
 EOF
 echo -e "\033[0m"
 
+
 function printnew(){
     typeset -l CHK
-    WENZHI=""
-    COLOUR=""
-    HUANHANG=0
-    for PARSTR in "${@}"; do
-        CHK="${PARSTR}"
-        if echo "${CHK}" | egrep -io "^\-[[:graph:]]*" >/dev/null 2>&1; then
-            case "${CHK}" in
-                -black) COLOUR="\033[30m";;
-                -red) COLOUR="\033[31m";;
-                -green) COLOUR="\033[32m";;
-                -yellow) COLOUR="\033[33m";;
-                -blue) COLOUR="\033[34m";;
-                -purple) COLOUR="\033[35m";;
-                -cyan) COLOUR="\033[36m";;
-                -white) COLOUR="\033[37m";;
-                -a) HUANHANG=1 ;;
-                *) COLOUR="\033[37m";;
+    content=''
+    colour=''
+    br=0
+    for line in "${@}"; do
+        echo "${line}" | egrep -iq '^\-[[:graph:]]*' && {
+            case "${line}" in
+                -black) colour="\033[30m";;
+                -red) colour="\033[31m";;
+                -green) colour="\033[32m";;
+                -yellow) colour="\033[33m";;
+                -blue) colour="\033[34m";;
+                -purple) colour="\033[35m";;
+                -cyan) colour="\033[36m";;
+                -white) colour="\033[37m";;
+                -a) br=1;;
+                *) colour="\033[37m";;
             esac
-        else
-            WENZHI+="${PARSTR}"
-        fi
+        } || content+="${line}"
     done
-    if [[ ${HUANHANG} -eq 1 ]]; then
-        printf "${COLOUR}%b%s\033[0m" "${WENZHI}"
-    else
-        printf "${COLOUR}%b%s\033[0m\n" "${WENZHI}"
-    fi
+    [[ ${br} -eq 1 ]] && echo -en "${colour}${content}\033[0m" || echo -e "${colour}${content}\033[0m"
 }
 
 # Check If You Are Root
