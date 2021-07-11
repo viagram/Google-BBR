@@ -277,7 +277,7 @@ function update_kernel(){
         fi
     elif [[ "$(Check_OS)" == "centos8" ||  "$(Check_OS)" == "rockylinux8" ]]; then
         printnew -green "安装最新版本ml内核: "
-        if ! dnf --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
+        if ! ${CMD} --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
             printnew -red "内核安装失败."
             exit 1
         else
@@ -285,7 +285,7 @@ function update_kernel(){
         fi
     fi
     printnew -green -a "正在设置新内核的启动顺序: "
-    if [[ "$(Check_OS)" == "centos7" ]]; then
+    if [[ "$(Check_OS)" == "centos7" || "$(Check_OS)" == "centos8" || "$(Check_OS)" == "rockylinux8" ]]; then
         if [[ -f /boot/grub/grub.conf ]]; then
             kernel_list=$(cat /boot/grub/grub.conf | egrep -io "CentOS Linux[[:print:]]*\(core\)")
             kernel_ver=$(echo "${kernel_list}" | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
