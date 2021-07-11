@@ -61,7 +61,7 @@ function version_le() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" 
 function chk_what(){
     printnew -a -green "检测系统架构: "
     if ! which virt-what >/dev/null 2>&1; then
-        yum install -y virt-what >/dev/null 2>&1
+        ${CMD} install -y virt-what >/dev/null 2>&1
     fi
     if [[ "$(virt-what)" == "openvz" ]]; then
         printnew -red "不支持openvz架构"
@@ -138,7 +138,7 @@ function OptNET(){
 
 function check_elrepo(){
     printnew -a -green "检查elrepo安装源: "
-    if ! yum list installed elrepo-release >/dev/null 2>&1; then
+    if ! ${CMD} list installed elrepo-release >/dev/null 2>&1; then
         printnew -red "失败"
         printnew -a -green "导入elrepo密钥: "
         if ! rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org >/dev/null 2>&1; then
@@ -149,7 +149,15 @@ function check_elrepo(){
             printnew -green "成功"
         fi
         printnew -a -green "安装elrepo-releases: "
-        if [[ "$(Check_OS)" == "centos7" ]]; then
+        if [[ "$(Check_OS)" == "centos8" || "$(Check_OS)" == "rockylinux8" ]]; then
+            if ! rpm -Uvh https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm >/dev/null 2>&1; then
+            #if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
+                printnew -red "失败"
+                exit 1
+            else
+                printnew -green "成功"
+            fi
+        elif [[ "$(Check_OS)" == "centos7" ]]; then
             if ! rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
             #if ! rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm >/dev/null 2>&1; then
                 printnew -red "失败"
@@ -229,7 +237,7 @@ function uninstall_bbr(){
 function update_kernel(){
     if rpm -qa | egrep -i "kernel" | egrep -i "headers" >/dev/null 2>&1; then
         printnew -green "为避免冲突, 正在删除旧版本的kernel-headers: "
-        rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs yum remove -y
+        rpm -qa | egrep -i "kernel" | egrep -i "headers" | xargs ${CMD} remove -y
     fi
     #注意: ml为最新版本的内核, lt为长期支持的内核. 建议安装ml版本. https://elrepo.org/linux/kernel/el7/x86_64/RPMS/
     if [[ "$(Check_OS)" == "centos6" ]]; then
@@ -261,7 +269,15 @@ function update_kernel(){
         fi
     elif [[ "$(Check_OS)" == "centos7" ]]; then
         printnew -green "安装最新版本ml内核: "
-        if ! yum --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
+        if ! ${CMD} --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
+            printnew -red "内核安装失败."
+            exit 1
+        else
+            printnew -green "内核安装成功."
+        fi
+    elif [[ "$(Check_OS)" == "centos8" ||  "$(Check_OS)" == "rockylinux8" ]]; then
+        printnew -green "安装最新版本ml内核: "
+        if ! dnf --enablerepo=elrepo-kernel -y install kernel-ml kernel-ml-devel kernel-ml-headers; then
             printnew -red "内核安装失败."
             exit 1
         else
@@ -278,13 +294,13 @@ function update_kernel(){
             printnew -yellow "成功. "
         else
             if ! which grub2-mkconfig >/dev/null 2>&1; then
-                yum remove -y grub2-tools-minimal
-                yum install -y grub2-tools
+                ${CMD} remove -y grub2-tools-minimal
+                ${CMD} install -y grub2-tools
             fi
             grub_cfg="";
             [[ -f /boot/grub2/grub.cfg ]] && grub_cfg=/boot/grub2/grub.cfg
             [[ -z ${grub_cfg} ]] && [[ -f /boot/efi/EFI/centos/grub.cfg ]] && grub_cfg=/boot/efi/EFI/centos/grub.cfg
-            [[ -z ${grub_cfg} ]] && (printnew -red "没找linu启动文件.";exit 1)
+            [[ -z ${grub_cfg} ]] && (printnew -red "没找linux启动文件.";exit 1)
             grub2-mkconfig -o ${grub_cfg} >/dev/null 2>&1
             grub2-mkconfig -o /boot/grub2/grub.cfg >/dev/null 2>&1
             kernel_list=$(cat ${grub_cfg} | egrep -io "CentOS Linux[[:print:]]*\(core\)")
@@ -311,7 +327,7 @@ function update_kernel(){
     if ! egrep -i "${MY_SCRIPT}" ~/.bashrc >/dev/null 2>&1; then
         echo "sh ${MY_SCRIPT} install">>~/.bashrc
     fi
-    [[ ${grub_cfg} == "/boot/efi/EFI/centos/grub.cfg" ]] && yum install -y efibootmgr >/dev/null 2>&1
+    [[ ${grub_cfg} == "/boot/efi/EFI/centos/grub.cfg" ]] && ${CMD} install -y efibootmgr >/dev/null 2>&1
     printnew -green "设置成功, 请重启系统后再次执行安装. "
     read -p "输入[y/n]选择是否重启, 默认为y：" is_reboot
     [[ -z "${is_reboot}" ]] && is_reboot='y'
@@ -326,17 +342,17 @@ function update_kernel(){
 function chk_kernel(){
     printnew -a -green "检测系统内核: "
     if ! which curl >/dev/null 2>&1; then
-        yum install -y curl >/dev/null 2>&1
+        ${CMD} install -y curl >/dev/null 2>&1
     fi
     if [[ "$(Check_OS)" == "centos6" ]]; then
         kernel_bs="lt"
     elif [[ "$(Check_OS)" == "centos7" ]]; then
         kernel_bs="ml"
     fi
-    KERNEL_NET=$(yum --enablerepo=elrepo-kernel list kernel-${kernel_bs} | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
+    KERNEL_NET=$(${CMD} --enablerepo=elrepo-kernel list kernel-${kernel_bs} | egrep -io '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}' | sort -Vur | head -n1)
     KERNEL_VER=$(uname -r | egrep -io '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}-[0-9]{1,3}')
 
-    if version_gt ${KERNEL_VER} '4.9.0'; then
+    if version_gt ${KERNEL_VER} '5.9.0'; then
         printnew -green "通过"
         #判断是否有新的内核
         printnew -green -a "当前内核: "
@@ -373,10 +389,12 @@ function chk_kernel(){
     fi
 }
 #####################################################################################
-if [[ "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
-    printnew -red "目前仅支持CentOS6,7及Redhat6,7系统."
+if [[ "$(Check_OS)" != "rockylinux8" && "$(Check_OS)" != "centos8" && "$(Check_OS)" != "centos7" && "$(Check_OS)" != "centos6" ]]; then
+    printnew -red "目前仅支持(CentOS|Redhat)6,7,8及rockylinux8系统."
     exit 1
 else
+    [[ "$(Check_OS)" == "rockylinux8" || "$(Check_OS)" == "centos8" ]] && CMD=dnf
+    [[ "$(Check_OS)" == "centos6" || "$(Check_OS)" == "centos7" ]] && CMD=yum
     zsph="/usr/bin/bbr"
     myph="$(dirname $(readlink -f $0))/$(basename $0)"
     if [[ -f ${myph} ]]; then
@@ -429,7 +447,7 @@ else
     chk_what
     #检测内核
     check_elrepo
-    yum -y remove qemu-guest-agent
+    ${CMD} -y remove qemu-guest-agent
     chk_kernel
     
     #删除二次登陆启动项
@@ -441,7 +459,7 @@ else
     #更新启动配置并删除其它内核
     if rpm -qa | grep kernel | grep -v "$(uname -r)" >/dev/null 2>&1; then
         printnew -green "删除其它老旧内核: "
-        rpm -qa | grep kernel | grep -v "$(uname -r)" | xargs yum remove -y
+        rpm -qa | grep kernel | grep -v "$(uname -r)" | xargs ${CMD} remove -y
         cd /lib/modules/
         ls | grep -v $(uname -r) | xargs rm -rf
         cd - >/dev/null 2>&1
