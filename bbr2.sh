@@ -1,7 +1,7 @@
 #!/bin/bash
 # By viagram <viagram.yang@gmail.com>
 
-PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+PATH=${PATH}:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 
 MY_SCRIPT="$(dirname $(readlink -f $0))/$(basename $0)"
